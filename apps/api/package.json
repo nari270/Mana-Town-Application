@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "dotenv -e ../../.env -- node dist/main.js",
+    "start:prod": "node dist/main.js",
     "dev": "tsc -p tsconfig.json && dotenv -e ../../.env -- node dist/main.js",
     "db:validate": "dotenv -e ../../.env -- prisma validate",
     "build": "tsc -p tsconfig.json",

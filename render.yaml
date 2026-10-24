@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: manatown-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run db:generate -w @mana-town/api && npm run build -w @mana-town/api
+    preDeployCommand: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+    startCommand: npm run start:prod -w @mana-town/api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: AUTH_JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        value: https://www.manatown.com,https://manatown.com
+
+  - type: web
+    name: manatown-web
+    runtime: static
+    buildCommand: npm ci --include=dev && npm run build -w @mana-town/client
+    staticPublishPath: apps/client/dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://api.manatown.com/api/v1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
