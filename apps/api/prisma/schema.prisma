@@ -110,6 +110,8 @@ model Business {
   description     String                     @db.VarChar(3000)
   address         String                     @db.VarChar(300)
   locality        String                     @db.VarChar(120)
+  latitude        Float?                     @db.DoublePrecision
+  longitude       Float?                     @db.DoublePrecision
   phone           String?                    @db.VarChar(32)
   whatsapp        String?                    @db.VarChar(32)
   status          BusinessStatus             @default(DRAFT)

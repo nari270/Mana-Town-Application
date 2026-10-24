@@ -17,9 +17,11 @@ import {
   getApiErrorMessage,
 } from '../src/api';
 import { NatureBackdrop } from '../src/NatureBackdrop';
+import { useLocationContext } from '../src/LocationContext';
 
 export default function EntrepreneursScreen() {
   const { t, i18n } = useTranslation();
+  const { locality } = useLocationContext();
   const { width } = useWindowDimensions();
   const isWide = width >= 760;
   const [searchInput, setSearchInput] = useState('');
@@ -30,7 +32,7 @@ export default function EntrepreneursScreen() {
     queryFn: getBusinessCategories,
   });
   const profiles = useInfiniteQuery({
-    queryKey: ['entrepreneurs', search, category],
+    queryKey: ['entrepreneurs', search, category, locality],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getEntrepreneurs({
@@ -38,7 +40,7 @@ export default function EntrepreneursScreen() {
         pageSize: 20,
         search,
         category,
-        locality: 'Kadiri',
+        ...(locality ? { locality } : {}),
       }),
     getNextPageParam: (page) =>
       page.page * page.pageSize < page.total ? page.page + 1 : undefined,
@@ -72,7 +74,7 @@ export default function EntrepreneursScreen() {
                 color="#6B8379"
               />
               <Text variant="bodyMedium" style={styles.locationText}>
-                Kadiri, Andhra Pradesh
+                {locality || t('town')}, Andhra Pradesh
               </Text>
             </View>
           </View>

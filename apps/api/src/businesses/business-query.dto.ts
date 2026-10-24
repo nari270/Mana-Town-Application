@@ -1,11 +1,15 @@
 import { Type } from 'class-transformer';
 import {
   IsInt,
+  IsDefined,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
   IsString,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class BusinessQueryDto {
@@ -36,4 +40,16 @@ export class BusinessQueryDto {
   @IsString()
   @MaxLength(120)
   locality?: string;
+
+  @ValidateIf((query: BusinessQueryDto) => query.longitude !== undefined)
+  @IsDefined()
+  @Type(() => Number)
+  @IsLatitude()
+  latitude?: number;
+
+  @ValidateIf((query: BusinessQueryDto) => query.latitude !== undefined)
+  @IsDefined()
+  @Type(() => Number)
+  @IsLongitude()
+  longitude?: number;
 }

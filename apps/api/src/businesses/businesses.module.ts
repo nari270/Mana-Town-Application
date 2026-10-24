@@ -3,6 +3,7 @@ import { BusinessCategoriesController } from './business-categories.controller.j
 import { BusinessAdministrationController } from './business-administration.controller.js';
 import { BusinessesController } from './businesses.controller.js';
 import { BusinessesService } from './businesses.service.js';
+import { BusinessImageStorageService } from './business-image-storage.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 
@@ -13,6 +14,6 @@ import { AuthModule } from '../auth/auth.module.js';
     BusinessCategoriesController,
     BusinessAdministrationController,
   ],
-  providers: [BusinessesService],
+  providers: [BusinessesService, BusinessImageStorageService],
 })
 export class BusinessesModule {}

@@ -16,6 +16,7 @@ import {
 import { StyleSheet, View } from 'react-native';
 import { I18nextProvider } from 'react-i18next';
 import { initializeLocalization, localization } from '@mana-town/localization';
+import { LocationProvider } from '../src/LocationContext';
 
 const theme = {
   ...MD3LightTheme,
@@ -58,15 +59,17 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={theme}>
           {ready ? (
-            <View style={styles.appCanvas}>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: 'transparent' },
-                }}
-              />
-              <ProfileMenu />
-            </View>
+            <LocationProvider>
+              <View style={styles.appCanvas}>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
+                />
+                <ProfileMenu />
+              </View>
+            </LocationProvider>
           ) : (
             <ActivityIndicator
               accessibilityLabel="Loading application"

@@ -3,7 +3,10 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDefined,
   IsInt,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
   IsString,
   IsUUID,
@@ -35,6 +38,21 @@ export class BusinessHourDto {
   closesAt?: string;
 }
 
+export class BusinessCoordinatesDto {
+  @IsLatitude()
+  latitude!: number;
+
+  @IsLongitude()
+  longitude!: number;
+}
+
+export class BusinessImageUploadDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  altText?: string;
+}
+
 export class BusinessWriteDto {
   @IsString()
   @MinLength(2)
@@ -53,6 +71,11 @@ export class BusinessWriteDto {
   @MinLength(2)
   @MaxLength(120)
   locality!: string;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => BusinessCoordinatesDto)
+  coordinates!: BusinessCoordinatesDto;
 
   @IsString()
   @MinLength(3)

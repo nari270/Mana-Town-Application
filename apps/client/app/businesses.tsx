@@ -1,6 +1,7 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -8,16 +9,19 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { Button, Card, Chip, Text, TextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getBusinessCategories,
   getBusinesses,
+  getReverseGeocodedLocality,
   getApiErrorMessage,
 } from '../src/api';
 import { NatureBackdrop } from '../src/NatureBackdrop';
 import { useTranslation } from 'react-i18next';
 import { AppFooter } from '../src/AppFooter';
+import { useLocationContext } from '../src/LocationContext';
 
 export default function BusinessesScreen() {
   const { t, i18n } = useTranslation();
@@ -29,28 +33,118 @@ export default function BusinessesScreen() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(categoryParam ?? '');
+  const [locationStatus, setLocationStatus] = useState<
+    'checking' | 'required' | 'locating' | 'ready' | 'denied' | 'error'
+  >('checking');
+  const [canAskAgain, setCanAskAgain] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const {
+    locality,
+    selectedLocality,
+    setDetectedLocality,
+    setSelectedLocality,
+  } = useLocationContext();
+  const [locationAttribution, setLocationAttribution] = useState('');
+  const [localityError, setLocalityError] = useState('');
+  const [localityLoading, setLocalityLoading] = useState(false);
+  const [areaInput, setAreaInput] = useState('');
   useEffect(() => {
     setCategory(categoryParam ?? '');
   }, [categoryParam]);
+  useEffect(() => {
+    const checkPermission = async () => {
+      const permission = await Location.getForegroundPermissionsAsync();
+      setCanAskAgain(permission.canAskAgain);
+      if (!permission.granted) {
+        setLocationStatus('required');
+        return;
+      }
+      await loadCurrentLocation();
+    };
+    void checkPermission().catch(() => {
+      setLocationStatus('error');
+    });
+  }, []);
+  useEffect(() => {
+    setAreaInput(selectedLocality);
+  }, [selectedLocality]);
+  const loadCurrentLocation = async () => {
+    setLocationStatus('locating');
+    try {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setCurrentLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setLocationStatus('ready');
+      setLocalityLoading(true);
+      setLocalityError('');
+      try {
+        const result = await getReverseGeocodedLocality({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          language: i18n.resolvedLanguage ?? 'en',
+        });
+        setDetectedLocality(result.locality);
+        setLocationAttribution(result.attribution);
+      } catch {
+        setDetectedLocality('');
+        setLocalityError(t('directory.localityLookupError'));
+      } finally {
+        setLocalityLoading(false);
+      }
+    } catch {
+      setLocationStatus('error');
+    }
+  };
+  const requestLocationPermission = async () => {
+    setLocationStatus('locating');
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      setCanAskAgain(permission.canAskAgain);
+      if (!permission.granted) {
+        setLocationStatus('denied');
+        return;
+      }
+      await loadCurrentLocation();
+    } catch {
+      setLocationStatus('error');
+    }
+  };
   const categories = useQuery({
     queryKey: ['business-categories'],
     queryFn: getBusinessCategories,
   });
   const businesses = useInfiniteQuery({
-    queryKey: ['businesses', search, category],
+    queryKey: [
+      'businesses',
+      search,
+      category,
+      selectedLocality,
+      currentLocation?.latitude,
+      currentLocation?.longitude,
+    ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getBusinesses({
         page: pageParam,
         search,
         category,
-        locality: 'Kadiri',
+        ...(selectedLocality
+          ? { locality: selectedLocality }
+          : (currentLocation ?? {})),
         pageSize: 20,
       }),
     getNextPageParam: (lastPage) =>
       lastPage.page * lastPage.pageSize < lastPage.total
         ? lastPage.page + 1
         : undefined,
+    enabled: locationStatus === 'ready',
   });
   const items = businesses.data?.pages.flatMap((page) => page.items) ?? [];
   const selectedCategory = categories.data?.find(
@@ -89,12 +183,105 @@ export default function BusinessesScreen() {
                 size={16}
                 color="#6B8379"
               />
-              <Text variant="bodyMedium" style={styles.locationText}>
-                Kadiri, Andhra Pradesh
-              </Text>
+              <View style={styles.locationDetails}>
+                <Text variant="bodyMedium" style={styles.locationText}>
+                  {locality ||
+                    t(
+                      locationStatus === 'ready'
+                        ? 'directory.currentLocation'
+                        : 'directory.locationRequired',
+                    )}
+                </Text>
+                {localityLoading ? (
+                  <Text variant="labelSmall" style={styles.attribution}>
+                    {t('directory.identifyingLocation')}
+                  </Text>
+                ) : locationAttribution && !selectedLocality ? (
+                  <Link href="https://www.openstreetmap.org/copyright" asChild>
+                    <Text variant="labelSmall" style={styles.attribution}>
+                      {locationAttribution}
+                    </Text>
+                  </Link>
+                ) : null}
+                {localityError && !selectedLocality ? (
+                  <Text variant="labelSmall" style={styles.locationError}>
+                    {localityError}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           </View>
         </View>
+        {locationStatus !== 'ready' ? (
+          <View style={styles.permissionCard}>
+            <MaterialCommunityIcons
+              name="map-marker-alert-outline"
+              size={28}
+              color="#087C5D"
+            />
+            <Text variant="titleMedium" style={styles.permissionTitle}>
+              {locationStatus === 'checking' || locationStatus === 'locating'
+                ? t('directory.locationLoading')
+                : t('directory.locationRequired')}
+            </Text>
+            <Text variant="bodyMedium" style={styles.permissionDescription}>
+              {locationStatus === 'denied' || !canAskAgain
+                ? t('directory.locationDenied')
+                : locationStatus === 'error'
+                  ? t('directory.locationError')
+                  : t('directory.locationExplanation')}
+            </Text>
+            {(locationStatus === 'required' ||
+              locationStatus === 'denied' ||
+              locationStatus === 'error') && (
+              <Button
+                mode="contained"
+                onPress={() =>
+                  canAskAgain
+                    ? void requestLocationPermission()
+                    : void Linking.openSettings().catch(() =>
+                        setLocationStatus('error'),
+                      )
+                }
+              >
+                {canAskAgain
+                  ? t('directory.allowLocation')
+                  : t('directory.openLocationSettings')}
+              </Button>
+            )}
+          </View>
+        ) : (
+          <View style={styles.areaPicker}>
+            <TextInput
+              label={t('directory.customAreaLabel')}
+              value={areaInput}
+              onChangeText={setAreaInput}
+              onSubmitEditing={() => {
+                setSelectedLocality(areaInput.trim());
+              }}
+              returnKeyType="search"
+              style={styles.searchInput}
+            />
+            <Button
+              mode="outlined"
+              disabled={!areaInput.trim()}
+              onPress={() => setSelectedLocality(areaInput.trim())}
+            >
+              {t('directory.customAreaButton')}
+            </Button>
+            {selectedLocality ? (
+              <Button
+                mode="text"
+                onPress={() => {
+                  setSelectedLocality('');
+                  setAreaInput('');
+                }}
+              >
+                {t('directory.useLiveArea')}
+              </Button>
+            ) : null}
+          </View>
+        )}
         <View style={styles.searchRow}>
           <TextInput
             label={t('directory.searchLabel')}
@@ -153,10 +340,10 @@ export default function BusinessesScreen() {
           </ScrollView>
         )}
 
-        {businesses.isPending && (
+        {locationStatus === 'ready' && businesses.isPending && (
           <Text accessibilityRole="progressbar">{t('directory.loading')}</Text>
         )}
-        {businesses.isError && (
+        {locationStatus === 'ready' && businesses.isError && (
           <View style={styles.state}>
             <Text accessibilityRole="alert" style={styles.error}>
               {getApiErrorMessage(businesses.error, t)}
@@ -166,108 +353,124 @@ export default function BusinessesScreen() {
             </Button>
           </View>
         )}
-        {businesses.isSuccess && items.length === 0 && (
-          <Text style={styles.state}>{t('directory.empty')}</Text>
-        )}
-        <View style={styles.listings}>
-          {items.map((business) => (
-            <Card
-              key={business.id}
-              mode="elevated"
-              style={[styles.listingCard, isWide && styles.wideListingCard]}
-            >
-              <Card.Content style={styles.cardContent}>
-                <View style={styles.businessIntro}>
-                  <View style={styles.businessImage}>
+        {locationStatus === 'ready' &&
+          businesses.isSuccess &&
+          items.length === 0 && (
+            <Text style={styles.state}>
+              {selectedLocality
+                ? t('directory.emptyArea', { area: selectedLocality })
+                : t('directory.empty')}
+            </Text>
+          )}
+        {locationStatus === 'ready' && (
+          <View style={styles.listings}>
+            {items.map((business) => (
+              <Card
+                key={business.id}
+                mode="elevated"
+                style={[styles.listingCard, isWide && styles.wideListingCard]}
+              >
+                <Card.Content style={styles.cardContent}>
+                  <View style={styles.businessIntro}>
+                    <View style={styles.businessImage}>
+                      <MaterialCommunityIcons
+                        name="storefront"
+                        size={30}
+                        color="#087C5D"
+                      />
+                    </View>
+                    <View style={styles.businessName}>
+                      <Text variant="titleLarge" style={styles.businessTitle}>
+                        {business.name}
+                      </Text>
+                      <Text variant="labelMedium" style={styles.categoryText}>
+                        {business.categories
+                          .map((item) =>
+                            i18n.resolvedLanguage === 'te'
+                              ? item.nameTelugu
+                              : item.nameEnglish,
+                          )
+                          .join(' · ')}
+                      </Text>
+                    </View>
                     <MaterialCommunityIcons
-                      name="storefront"
-                      size={30}
-                      color="#087C5D"
+                      name="check-decagram"
+                      size={20}
+                      color="#16845F"
                     />
                   </View>
-                  <View style={styles.businessName}>
-                    <Text variant="titleLarge" style={styles.businessTitle}>
-                      {business.name}
-                    </Text>
-                    <Text variant="labelMedium" style={styles.categoryText}>
-                      {business.categories
-                        .map((item) =>
-                          i18n.resolvedLanguage === 'te'
-                            ? item.nameTelugu
-                            : item.nameEnglish,
-                        )
-                        .join(' · ')}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="check-decagram"
-                    size={20}
-                    color="#16845F"
-                  />
-                </View>
-                <Text variant="bodyMedium" numberOfLines={3}>
-                  {business.description}
-                </Text>
-                <View style={styles.location}>
-                  <MaterialCommunityIcons
-                    name="map-marker-outline"
-                    size={16}
-                    color="#6B8379"
-                  />
-                  <Text variant="bodySmall" style={styles.locationText}>
-                    {business.address}, {business.locality}
+                  <Text variant="bodyMedium" numberOfLines={3}>
+                    {business.description}
                   </Text>
-                </View>
-                {business.hours.length > 0 && (
+                  {business.images[0] && (
+                    <Image
+                      source={{ uri: business.images[0].imageUrl }}
+                      style={styles.listingPhoto}
+                      resizeMode="cover"
+                      accessibilityLabel={business.images[0].altText}
+                    />
+                  )}
                   <View style={styles.location}>
                     <MaterialCommunityIcons
-                      name="clock-outline"
+                      name="map-marker-outline"
                       size={16}
                       color="#6B8379"
                     />
                     <Text variant="bodySmall" style={styles.locationText}>
-                      {business.hours
-                        .map((hour) =>
-                          hour.closed
-                            ? `${t(`directory.weekday.${hour.weekday}`)}: ${t('directory.closed')}`
-                            : `${t(`directory.weekday.${hour.weekday}`)}: ${hour.opensAt ?? ''}–${hour.closesAt ?? ''}`,
-                        )
-                        .join(' · ')}
+                      {business.address}, {business.locality}
                     </Text>
                   </View>
-                )}
-              </Card.Content>
-              <Card.Actions>
-                {business.phone && (
-                  <Button
-                    icon="phone-outline"
-                    onPress={() =>
-                      void Linking.openURL(`tel:${business.phone}`)
-                    }
-                  >
-                    {t('business.call')}
-                  </Button>
-                )}
-                {business.whatsapp && (
-                  <Button
-                    icon="whatsapp"
-                    onPress={() =>
-                      void Linking.openURL(
-                        `https://wa.me/${business.whatsapp?.replace(/\D/g, '')}`,
-                      )
-                    }
-                  >
-                    {t('business.whatsapp')}
-                  </Button>
-                )}
-                <Link href={`/businesses/${business.id}`} asChild>
-                  <Button mode="contained">{t('directory.details')}</Button>
-                </Link>
-              </Card.Actions>
-            </Card>
-          ))}
-        </View>
-        {businesses.hasNextPage && (
+                  {business.hours.length > 0 && (
+                    <View style={styles.location}>
+                      <MaterialCommunityIcons
+                        name="clock-outline"
+                        size={16}
+                        color="#6B8379"
+                      />
+                      <Text variant="bodySmall" style={styles.locationText}>
+                        {business.hours
+                          .map((hour) =>
+                            hour.closed
+                              ? `${t(`directory.weekday.${hour.weekday}`)}: ${t('directory.closed')}`
+                              : `${t(`directory.weekday.${hour.weekday}`)}: ${hour.opensAt ?? ''}–${hour.closesAt ?? ''}`,
+                          )
+                          .join(' · ')}
+                      </Text>
+                    </View>
+                  )}
+                </Card.Content>
+                <Card.Actions>
+                  {business.phone && (
+                    <Button
+                      icon="phone-outline"
+                      onPress={() =>
+                        void Linking.openURL(`tel:${business.phone}`)
+                      }
+                    >
+                      {t('business.call')}
+                    </Button>
+                  )}
+                  {business.whatsapp && (
+                    <Button
+                      icon="whatsapp"
+                      onPress={() =>
+                        void Linking.openURL(
+                          `https://wa.me/${business.whatsapp?.replace(/\D/g, '')}`,
+                        )
+                      }
+                    >
+                      {t('business.whatsapp')}
+                    </Button>
+                  )}
+                  <Link href={`/businesses/${business.id}`} asChild>
+                    <Button mode="contained">{t('directory.details')}</Button>
+                  </Link>
+                </Card.Actions>
+              </Card>
+            ))}
+          </View>
+        )}
+        {locationStatus === 'ready' && businesses.hasNextPage && (
           <Button
             mode="outlined"
             loading={businesses.isFetchingNextPage}
@@ -329,6 +532,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     color: '#6B8379',
   },
+  locationDetails: {
+    flex: 1,
+    gap: 2,
+  },
+  attribution: {
+    color: '#6B8379',
+  },
+  locationError: {
+    color: '#B42318',
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -339,6 +552,26 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     alignSelf: 'center',
+  },
+  permissionCard: {
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#DDEAE3',
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+  },
+  permissionTitle: {
+    color: '#193F34',
+    fontWeight: '800',
+  },
+  permissionDescription: {
+    color: '#70847B',
+    lineHeight: 21,
+  },
+  areaPicker: {
+    gap: 8,
   },
   chips: {
     flexDirection: 'row',
@@ -375,6 +608,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 16,
     backgroundColor: '#DDF5E9',
+  },
+  listingPhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: '#E6EFE8',
   },
   businessName: {
     flex: 1,

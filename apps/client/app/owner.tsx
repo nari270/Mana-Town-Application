@@ -2,7 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import {
   Button,
   Card,
@@ -22,13 +24,15 @@ import {
   getOwnBusinesses,
   requestEntrepreneurClassification,
   submitBusiness,
+  uploadBusinessImage,
   updateBusiness,
   type OwnedBusiness,
 } from '../src/api';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { AppFooter } from '../src/AppFooter';
 import { NatureBackdrop } from '../src/NatureBackdrop';
+import { useLocationContext } from '../src/LocationContext';
 
 type BusinessForm = z.infer<typeof businessSubmissionSchema>;
 
@@ -36,7 +40,7 @@ const emptyForm: BusinessForm = {
   name: '',
   description: '',
   categoryId: '',
-  locality: 'Kadiri',
+  locality: '',
   address: '',
   phone: '',
   whatsapp: '',
@@ -44,9 +48,18 @@ const emptyForm: BusinessForm = {
 
 export default function OwnerPortalScreen() {
   const { t, i18n } = useTranslation();
+  const { locality } = useLocationContext();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<
+    OwnedBusiness['status'] | null
+  >(null);
   const [feedback, setFeedback] = useState('');
+  const [latitudeInput, setLatitudeInput] = useState('');
+  const [longitudeInput, setLongitudeInput] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [photoError, setPhotoError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [confirmWomenOwned, setConfirmWomenOwned] = useState(false);
   const categories = useQuery({
     queryKey: ['business-categories'],
@@ -62,8 +75,13 @@ export default function OwnerPortalScreen() {
   });
   const form = useForm<BusinessForm>({
     resolver: zodResolver(businessSubmissionSchema),
-    defaultValues: emptyForm,
+    defaultValues: { ...emptyForm, locality },
   });
+  useEffect(() => {
+    if (!selectedId && !form.getFieldState('locality').isDirty) {
+      form.setValue('locality', locality);
+    }
+  }, [form, locality, selectedId]);
   const save = useMutation({
     mutationFn: ({
       id,
@@ -72,9 +90,13 @@ export default function OwnerPortalScreen() {
       id: string | null;
       values: BusinessForm;
     }) => {
-      const { phone, whatsapp, ...details } = values;
+      if (!values.coordinates) {
+        throw new Error(t('owner.locationInvalid'));
+      }
+      const { phone, whatsapp, coordinates, ...details } = values;
       const payload = {
         ...details,
+        coordinates,
         ...(phone ? { phone } : {}),
         ...(whatsapp ? { whatsapp } : {}),
       };
@@ -82,13 +104,15 @@ export default function OwnerPortalScreen() {
     },
     onSuccess: async (business: OwnedBusiness) => {
       setSelectedId(business.id);
+      setSelectedStatus(business.status);
       setFeedback(t('owner.saved'));
       await queryClient.invalidateQueries({ queryKey: ['businesses', 'mine'] });
     },
   });
   const submit = useMutation({
     mutationFn: submitBusiness,
-    onSuccess: async () => {
+    onSuccess: async (_, businessId) => {
+      if (businessId === selectedId) setSelectedStatus('PENDING');
       setFeedback(t('owner.submitted'));
       await queryClient.invalidateQueries({ queryKey: ['businesses', 'mine'] });
     },
@@ -104,20 +128,130 @@ export default function OwnerPortalScreen() {
 
   const edit = (business: OwnedBusiness) => {
     setFeedback('');
+    setLocationError('');
+    setPhotoError('');
     setSelectedId(business.id);
+    setSelectedStatus(business.status);
     form.reset({
       name: business.name,
       description: business.description,
       categoryId: business.categories[0]?.id ?? '',
       locality: business.locality,
       address: business.address,
+      coordinates:
+        business.latitude !== null && business.longitude !== null
+          ? {
+              latitude: business.latitude,
+              longitude: business.longitude,
+            }
+          : undefined,
       phone: business.phone ?? '',
       whatsapp: business.whatsapp ?? '',
     });
+    setLatitudeInput(
+      business.latitude === null ? '' : String(business.latitude),
+    );
+    setLongitudeInput(
+      business.longitude === null ? '' : String(business.longitude),
+    );
+  };
+
+  const useCurrentLocation = async () => {
+    setLocationError('');
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setLocationError(t('owner.locationDenied'));
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setLatitudeInput(String(position.coords.latitude));
+      setLongitudeInput(String(position.coords.longitude));
+      form.setValue('coordinates', {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    } catch {
+      setLocationError(t('owner.locationError'));
+    }
+  };
+
+  const saveDraft = () => {
+    const latitude = Number(latitudeInput);
+    const longitude = Number(longitudeInput);
+    if (
+      !latitudeInput.trim() ||
+      !longitudeInput.trim() ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      setLocationError(t('owner.locationInvalid'));
+      return;
+    }
+    setLocationError('');
+    form.setValue('coordinates', { latitude, longitude });
+    void form.handleSubmit((values) => {
+      setFeedback('');
+      save.mutate({
+        id: selectedId,
+        values: { ...values, coordinates: { latitude, longitude } },
+      });
+    })();
+  };
+
+  const takeBusinessPhoto = async () => {
+    if (!selectedId) {
+      setPhotoError(t('owner.photoSaveFirst'));
+      return;
+    }
+    setPhotoError('');
+    setPhotoUploading(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        setPhotoError(t('owner.cameraDenied'));
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+      const response = await fetch(asset.uri);
+      if (!response.ok) {
+        setPhotoError(t('owner.photoUploadError'));
+        return;
+      }
+      const image = await response.blob();
+      const typedImage = new Blob([image], {
+        type: asset.mimeType ?? image.type,
+      });
+      const formData = new FormData();
+      formData.append(
+        'file',
+        typedImage,
+        asset.fileName ?? 'business-photo.jpg',
+      );
+      formData.append('altText', form.getValues('name'));
+      await uploadBusinessImage(selectedId, formData);
+      await queryClient.invalidateQueries({ queryKey: ['businesses', 'mine'] });
+      setFeedback(t('owner.photoUploaded'));
+    } catch (error) {
+      setPhotoError(getApiErrorMessage(error, t));
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const field = (
-    name: keyof BusinessForm,
+    name: Exclude<keyof BusinessForm, 'coordinates'>,
     label: string,
     multiline = false,
   ) => (
@@ -223,6 +357,77 @@ export default function OwnerPortalScreen() {
         )}
         {field('locality', t('owner.locality'))}
         {field('address', t('owner.address'))}
+        <View style={styles.locationFields}>
+          <Text variant="titleMedium">{t('owner.locationTitle')}</Text>
+          <Text variant="bodySmall" style={styles.hint}>
+            {t('owner.locationHint')}
+          </Text>
+          <View style={styles.coordinates}>
+            <TextInput
+              label={t('owner.latitude')}
+              value={latitudeInput}
+              onChangeText={setLatitudeInput}
+              keyboardType="numbers-and-punctuation"
+              style={styles.coordinateInput}
+            />
+            <TextInput
+              label={t('owner.longitude')}
+              value={longitudeInput}
+              onChangeText={setLongitudeInput}
+              keyboardType="numbers-and-punctuation"
+              style={styles.coordinateInput}
+            />
+          </View>
+          <Button
+            mode="outlined"
+            icon="crosshairs-gps"
+            onPress={() => void useCurrentLocation()}
+          >
+            {t('owner.useCurrentLocation')}
+          </Button>
+        </View>
+        {locationError ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {locationError}
+          </Text>
+        ) : null}
+        {selectedId &&
+        (selectedStatus === 'DRAFT' || selectedStatus === 'REJECTED') ? (
+          <View style={styles.photoActions}>
+            <Button
+              mode="outlined"
+              icon="camera-outline"
+              loading={photoUploading}
+              disabled={
+                photoUploading ||
+                (businesses.data?.find((business) => business.id === selectedId)
+                  ?.images.length ?? 0) >= 5
+              }
+              onPress={() => void takeBusinessPhoto()}
+            >
+              {t('owner.addPhoto')}
+            </Button>
+            <Text variant="bodySmall" style={styles.hint}>
+              {(businesses.data?.find((business) => business.id === selectedId)
+                ?.images.length ?? 0) >= 5
+                ? t('owner.photoLimitReached')
+                : t('owner.photoLimit')}
+            </Text>
+          </View>
+        ) : selectedId ? (
+          <Text variant="bodySmall" style={styles.hint}>
+            {t('owner.photoDraftOnly')}
+          </Text>
+        ) : (
+          <Text variant="bodySmall" style={styles.hint}>
+            {t('owner.photoSaveFirst')}
+          </Text>
+        )}
+        {photoError ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {photoError}
+          </Text>
+        ) : null}
         {field('phone', t('owner.phone'))}
         {field('whatsapp', t('owner.whatsapp'))}
         {feedback ? (
@@ -240,10 +445,7 @@ export default function OwnerPortalScreen() {
             mode="contained"
             loading={save.isPending}
             disabled={save.isPending || submit.isPending}
-            onPress={form.handleSubmit((values) => {
-              setFeedback('');
-              save.mutate({ id: selectedId, values });
-            })}
+            onPress={saveDraft}
           >
             {t('owner.save')}
           </Button>
@@ -252,7 +454,12 @@ export default function OwnerPortalScreen() {
               mode="outlined"
               onPress={() => {
                 setSelectedId(null);
+                setSelectedStatus(null);
                 setFeedback('');
+                setLatitudeInput('');
+                setLongitudeInput('');
+                setLocationError('');
+                setPhotoError('');
                 form.reset(emptyForm);
               }}
             >
@@ -306,6 +513,20 @@ export default function OwnerPortalScreen() {
                   {t('owner.rejection')}:{' '}
                   {business.entrepreneur.rejectionReason}
                 </Text>
+              )}
+              {business.images.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.businessPhotos}>
+                    {business.images.map((image) => (
+                      <Image
+                        key={image.id}
+                        source={{ uri: image.imageUrl }}
+                        style={styles.businessPhoto}
+                        accessibilityLabel={image.altText}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
               )}
             </Card.Content>
             <Card.Actions>
@@ -383,6 +604,34 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     gap: 8,
+  },
+  locationFields: {
+    gap: 8,
+  },
+  coordinates: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  coordinateInput: {
+    flex: 1,
+  },
+  photoActions: {
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  businessPhotos: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  businessPhoto: {
+    width: 110,
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#E6EFE8',
+  },
+  hint: {
+    color: '#70847B',
   },
   error: {
     color: '#B42318',

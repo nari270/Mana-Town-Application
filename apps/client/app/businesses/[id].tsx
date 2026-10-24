@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Text } from 'react-native-paper';
 import { getApiErrorMessage, getBusiness } from '../../src/api';
@@ -53,6 +53,20 @@ export default function BusinessDetailsScreen() {
                   .join(' · ')}
               </Text>
               <Text variant="bodyLarge">{business.data.description}</Text>
+              {business.data.images.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.photos}>
+                    {business.data.images.map((image) => (
+                      <Image
+                        key={image.id}
+                        source={{ uri: image.imageUrl }}
+                        style={styles.photo}
+                        accessibilityLabel={image.altText}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
               <Text>
                 {business.data.address}, {business.data.locality}
               </Text>
@@ -113,6 +127,17 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: 12,
+  },
+  photos: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  photo: {
+    width: 280,
+    height: 200,
+    borderRadius: 14,
+    backgroundColor: '#E6EFE8',
   },
   state: {
     paddingVertical: 18,

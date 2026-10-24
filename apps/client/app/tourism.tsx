@@ -15,9 +15,11 @@ import { Button, Text } from 'react-native-paper';
 import { AppFooter } from '../src/AppFooter';
 import { NatureBackdrop } from '../src/NatureBackdrop';
 import { touristPlaces } from '../src/touristPlaces';
+import { useLocationContext } from '../src/LocationContext';
 
 export default function TourismScreen() {
   const { t } = useTranslation();
+  const { locality } = useLocationContext();
   const { width } = useWindowDimensions();
   const isWide = width >= 760;
   const [linkError, setLinkError] = useState(false);
@@ -52,7 +54,7 @@ export default function TourismScreen() {
               {t('home.tourism.eyebrow')}
             </Text>
             <Text variant="headlineMedium" style={styles.title}>
-              {t('home.tourism.title')}
+              {t('home.tourism.title', { town: locality || t('town') })}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
               {t('home.tourism.subtitle')}

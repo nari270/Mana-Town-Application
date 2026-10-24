@@ -11,8 +11,15 @@ export type BusinessListItem = {
   description: string;
   address: string;
   locality: string;
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   whatsapp: string | null;
+  images: {
+    id: string;
+    imageUrl: string;
+    altText: string;
+  }[];
   categories: BusinessCategory[];
   hours: {
     weekday: number;

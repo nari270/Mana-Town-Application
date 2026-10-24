@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   Param,
@@ -7,8 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
   UseGuards,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator.js';
@@ -16,7 +20,11 @@ import type { AuthenticatedUser } from '../auth/auth.types.js';
 import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import { BusinessQueryDto } from './business-query.dto.js';
-import { BusinessWriteDto, UpdateBusinessDto } from './business-write.dto.js';
+import {
+  BusinessImageUploadDto,
+  BusinessWriteDto,
+  UpdateBusinessDto,
+} from './business-write.dto.js';
 import { BusinessesService } from './businesses.service.js';
 
 @ApiTags('businesses')
@@ -61,6 +69,31 @@ export class BusinessesController {
     @Body() input: UpdateBusinessDto,
   ) {
     return this.businesses.updateOwned(user.id, id, input);
+  }
+
+  @Post(':id/images')
+  @UseGuards(AuthenticationGuard, RolesGuard)
+  @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  @ApiOperation({ summary: 'Upload a business photo' })
+  uploadImage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile()
+    file: { buffer: Buffer; mimetype: string } | undefined,
+    @Body() input: BusinessImageUploadDto,
+  ) {
+    if (!file) {
+      throw new BadRequestException('A business photo is required.');
+    }
+    return this.businesses.addBusinessImage(
+      user.id,
+      id,
+      { buffer: file.buffer, mimetype: file.mimetype },
+      input.altText ?? '',
+    );
   }
 
   @Post(':id/submit')

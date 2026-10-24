@@ -10,6 +10,10 @@ import { BusinessQueryDto } from './business-query.dto.js';
 import { BusinessWriteDto, UpdateBusinessDto } from './business-write.dto.js';
 import { AdminBusinessQueryDto } from './admin-business-query.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  BusinessImageStorageService,
+  type UploadedBusinessImage,
+} from './business-image-storage.service.js';
 
 export function buildBusinessWhere(
   filters: Pick<BusinessQueryDto, 'search' | 'category' | 'locality'>,
@@ -50,8 +54,14 @@ const businessSelect = {
   description: true,
   address: true,
   locality: true,
+  latitude: true,
+  longitude: true,
   phone: true,
   whatsapp: true,
+  images: {
+    orderBy: { sortOrder: 'asc' as const },
+    select: { id: true, objectKey: true, altText: true },
+  },
   categories: {
     select: {
       category: {
@@ -92,8 +102,11 @@ export type BusinessListItem = {
   description: string;
   address: string;
   locality: string;
+  latitude: number | null;
+  longitude: number | null;
   phone: string | null;
   whatsapp: string | null;
+  images: { id: string; imageUrl: string; altText: string }[];
   categories: {
     id: string;
     nameEnglish: string;
@@ -126,30 +139,107 @@ type ModeratedBusinessItem = OwnedBusinessItem & {
 
 @Injectable()
 export class BusinessesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly imageStorage: BusinessImageStorageService,
+  ) {}
 
   async list(filters: BusinessQueryDto): Promise<Page<BusinessListItem>> {
     const where = buildBusinessWhere(filters);
     const skip = (filters.page - 1) * filters.pageSize;
-    const [records, total] = await this.prisma.$transaction([
-      this.prisma.business.findMany({
-        where,
-        select: businessSelect,
-        orderBy: { name: 'asc' },
-        skip,
-        take: filters.pageSize,
-      }),
-      this.prisma.business.count({ where }),
-    ]);
+    const total = await this.prisma.business.count({ where });
+    const ids =
+      filters.latitude !== undefined && filters.longitude !== undefined
+        ? await this.nearestIds(filters, skip)
+        : undefined;
+    const records = await this.prisma.business.findMany({
+      where: ids ? { ...where, id: { in: ids } } : where,
+      select: businessSelect,
+      ...(ids
+        ? {}
+        : { orderBy: { name: 'asc' as const }, skip, take: filters.pageSize }),
+    });
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const orderedRecords = ids
+      ? ids.flatMap((id) => {
+          const record = byId.get(id);
+          return record ? [record] : [];
+        })
+      : records;
 
     return {
-      items: records.map((record) => ({
-        ...record,
-        categories: record.categories.map(({ category }) => category),
-      })),
+      items: await Promise.all(
+        orderedRecords.map((record) => this.publicBusiness(record)),
+      ),
       page: filters.page,
       pageSize: filters.pageSize,
       total,
+    };
+  }
+
+  private async nearestIds(
+    filters: BusinessQueryDto,
+    skip: number,
+  ): Promise<string[]> {
+    const conditions: Prisma.Sql[] = [Prisma.sql`b.status = 'APPROVED'`];
+    const locality = filters.locality?.trim();
+    const search = filters.search?.trim();
+    const category = filters.category?.trim();
+    if (locality) {
+      conditions.push(Prisma.sql`b.locality ILIKE ${`%${locality}%`}`);
+    }
+    if (search) {
+      const pattern = `%${search}%`;
+      conditions.push(
+        Prisma.sql`(b.name ILIKE ${pattern} OR b.description ILIKE ${pattern} OR b.address ILIKE ${pattern})`,
+      );
+    }
+    if (category) {
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1
+        FROM public.business_category_assignments bca
+        JOIN public.business_categories bc ON bc.id = bca.category_id
+        WHERE bca.business_id = b.id AND bc.slug ILIKE ${category}
+      )`);
+    }
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`
+        SELECT b.id
+        FROM public.businesses b
+        WHERE ${Prisma.join(conditions, ' AND ')}
+        ORDER BY
+          (b.latitude IS NULL OR b.longitude IS NULL) ASC,
+          6371 * acos(GREATEST(-1.0, LEAST(1.0,
+            cos(radians(${filters.latitude!})) * cos(radians(b.latitude)) *
+            cos(radians(b.longitude) - radians(${filters.longitude!})) +
+            sin(radians(${filters.latitude!})) * sin(radians(b.latitude))
+          ))) ASC,
+          b.name ASC
+        LIMIT ${filters.pageSize} OFFSET ${skip}
+      `,
+    );
+    return rows.map(({ id }) => id);
+  }
+
+  private async publicBusiness<
+    T extends Prisma.BusinessGetPayload<{ select: typeof businessSelect }>,
+  >(
+    record: T,
+  ): Promise<
+    Omit<T, 'categories' | 'images'> &
+      Pick<BusinessListItem, 'categories' | 'images'>
+  > {
+    const images = await Promise.all(
+      record.images.map(async ({ id, objectKey, altText }) => ({
+        id,
+        altText,
+        imageUrl: await this.imageStorage.readUrl(objectKey),
+      })),
+    );
+    return {
+      ...record,
+      images,
+      categories: record.categories.map(({ category }) => category),
     };
   }
 
@@ -161,10 +251,7 @@ export class BusinessesService {
     if (!record) {
       throw new NotFoundException('Business not found.');
     }
-    return {
-      ...record,
-      categories: record.categories.map(({ category }) => category),
-    };
+    return this.publicBusiness(record);
   }
 
   async recordView(businessId: string, viewerId: string) {
@@ -231,10 +318,7 @@ export class BusinessesService {
       select: ownedBusinessSelect,
       orderBy: { updatedAt: 'desc' },
     });
-    return records.map((record) => ({
-      ...record,
-      categories: record.categories.map(({ category }) => category),
-    }));
+    return Promise.all(records.map((record) => this.publicBusiness(record)));
   }
 
   async createOwned(
@@ -256,6 +340,8 @@ export class BusinessesService {
         description: input.description.trim(),
         address: input.address.trim(),
         locality: input.locality.trim(),
+        latitude: input.coordinates?.latitude ?? null,
+        longitude: input.coordinates?.longitude ?? null,
         phone: input.phone?.trim() || null,
         whatsapp: input.whatsapp?.trim() || null,
         status: BusinessStatus.DRAFT,
@@ -272,10 +358,7 @@ export class BusinessesService {
       },
       select: ownedBusinessSelect,
     });
-    return {
-      ...record,
-      categories: record.categories.map(({ category: item }) => item),
-    };
+    return this.publicBusiness(record);
   }
 
   async updateOwned(
@@ -318,6 +401,12 @@ export class BusinessesService {
           ...(input.locality !== undefined
             ? { locality: input.locality.trim() }
             : {}),
+          ...(input.coordinates !== undefined
+            ? {
+                latitude: input.coordinates.latitude,
+                longitude: input.coordinates.longitude,
+              }
+            : {}),
           ...(input.phone !== undefined
             ? { phone: input.phone.trim() || null }
             : {}),
@@ -359,11 +448,61 @@ export class BusinessesService {
           reason: 'Owner updated listing; review required.',
         },
       });
-      return {
-        ...record,
-        categories: record.categories.map(({ category }) => category),
-      };
+      return this.publicBusiness(record);
     });
+  }
+
+  async addBusinessImage(
+    userId: string,
+    businessId: string,
+    file: UploadedBusinessImage,
+    altText: string,
+  ) {
+    const business = await this.prisma.business.findFirst({
+      where: {
+        id: businessId,
+        ownerships: { some: { userId } },
+      },
+      select: { id: true, status: true },
+    });
+    if (!business) {
+      throw new NotFoundException('Business not found.');
+    }
+    if (
+      business.status !== BusinessStatus.DRAFT &&
+      business.status !== BusinessStatus.REJECTED
+    ) {
+      throw new ConflictException(
+        'Save the listing as a draft before adding photos.',
+      );
+    }
+    const imageCount = await this.prisma.businessImage.count({
+      where: { businessId },
+    });
+    if (imageCount >= 5) {
+      throw new ConflictException('A business can have up to 5 photos.');
+    }
+
+    const objectKey = await this.imageStorage.upload(businessId, file);
+    try {
+      const image = await this.prisma.businessImage.create({
+        data: {
+          businessId,
+          objectKey,
+          altText: altText.trim() || 'Business photo',
+          sortOrder: imageCount,
+        },
+        select: { id: true, objectKey: true, altText: true },
+      });
+      return {
+        id: image.id,
+        altText: image.altText,
+        imageUrl: await this.imageStorage.readUrl(image.objectKey),
+      };
+    } catch (error) {
+      await this.imageStorage.delete(objectKey);
+      throw error;
+    }
   }
 
   async submitOwned(userId: string, id: string): Promise<OwnedBusinessItem> {
@@ -399,10 +538,7 @@ export class BusinessesService {
           status: BusinessStatus.PENDING,
         },
       });
-      return {
-        ...record,
-        categories: record.categories.map(({ category }) => category),
-      };
+      return this.publicBusiness(record);
     });
   }
 
@@ -423,10 +559,9 @@ export class BusinessesService {
       this.prisma.business.count({ where }),
     ]);
     return {
-      items: records.map((record) => ({
-        ...record,
-        categories: record.categories.map(({ category }) => category),
-      })),
+      items: await Promise.all(
+        records.map((record) => this.publicBusiness(record)),
+      ),
       page: query.page,
       pageSize: query.pageSize,
       total,
@@ -485,10 +620,7 @@ export class BusinessesService {
           entityId: id,
         },
       });
-      return {
-        ...record,
-        categories: record.categories.map(({ category }) => category),
-      };
+      return this.publicBusiness(record);
     });
   }
 }

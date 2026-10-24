@@ -153,7 +153,6 @@ async function request<T>(
       throw error;
     }
   }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   const token = session?.token;
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -163,7 +162,12 @@ async function request<T>(
       headers,
     };
     if (options.body !== undefined) {
-      requestOptions.body = JSON.stringify(options.body);
+      if (typeof FormData !== 'undefined' && options.body instanceof FormData) {
+        requestOptions.body = options.body;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        requestOptions.body = JSON.stringify(options.body);
+      }
     }
     response = await fetch(`${apiBaseUrl}${path}`, requestOptions);
   } catch {
@@ -208,6 +212,8 @@ export function getBusinesses(params: {
   search?: string;
   category?: string;
   locality?: string;
+  latitude?: number;
+  longitude?: number;
 }) {
   const query = new URLSearchParams();
   query.set('page', String(params.page ?? 1));
@@ -215,7 +221,33 @@ export function getBusinesses(params: {
   if (params.search) query.set('search', params.search);
   if (params.category) query.set('category', params.category);
   if (params.locality) query.set('locality', params.locality);
+  if (params.latitude !== undefined && params.longitude !== undefined) {
+    query.set('latitude', String(params.latitude));
+    query.set('longitude', String(params.longitude));
+  }
   return request<Page<BusinessListItem>>(`/businesses?${query.toString()}`);
+}
+
+export function getReverseGeocodedLocality(params: {
+  latitude: number;
+  longitude: number;
+  language: string;
+}) {
+  const query = new URLSearchParams({
+    latitude: String(params.latitude),
+    longitude: String(params.longitude),
+    language: params.language,
+  });
+  return request<{ locality: string; attribution: string }>(
+    `/location/reverse?${query.toString()}`,
+  );
+}
+
+export function uploadBusinessImage(businessId: string, formData: FormData) {
+  return request<BusinessListItem['images'][number]>(
+    `/businesses/${businessId}/images`,
+    { method: 'POST', body: formData },
+  );
 }
 
 export function getBusiness(id: string) {
@@ -236,6 +268,7 @@ export function createBusiness(input: {
   categoryId: string;
   locality: string;
   address: string;
+  coordinates: { latitude: number; longitude: number };
   phone?: string;
   whatsapp?: string;
 }) {
@@ -253,6 +286,7 @@ export function updateBusiness(
     categoryId: string;
     locality: string;
     address: string;
+    coordinates: { latitude: number; longitude: number };
     phone: string;
     whatsapp: string;
   }>,

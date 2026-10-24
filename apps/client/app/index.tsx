@@ -7,11 +7,15 @@ import {
 } from 'react-native';
 import { Link, type Href } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Button, Text } from 'react-native-paper';
+import { Button, Text, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { AppFooter } from '../src/AppFooter';
 import { hasRole, useSession } from '../src/session';
 import { NatureBackdrop } from '../src/NatureBackdrop';
+import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
+import { getReverseGeocodedLocality } from '../src/api';
+import { useLocationContext } from '../src/LocationContext';
 
 type Destination =
   '/businesses' | '/entrepreneurs' | '/report-issue' | '/owner' | '/tourism';
@@ -24,12 +28,69 @@ type DiscoveryCardData = {
 };
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const isWide = width >= 760;
   const isCompact = width < 440;
   const session = useSession();
   const adminMode = hasRole(session, 'ADMIN');
+  const {
+    locality,
+    selectedLocality,
+    setDetectedLocality,
+    setSelectedLocality,
+  } = useLocationContext();
+  const [locationAttribution, setLocationAttribution] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [areaInput, setAreaInput] = useState('');
+
+  const updateCurrentLocation = async (requestPermission: boolean) => {
+    setLocationLoading(true);
+    setLocationError('');
+    try {
+      const permission = requestPermission
+        ? await Location.requestForegroundPermissionsAsync()
+        : await Location.getForegroundPermissionsAsync();
+      if (!permission.granted) {
+        if (requestPermission)
+          setLocationError(t('home.locationPermissionDenied'));
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const result = await getReverseGeocodedLocality({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        language: i18n.resolvedLanguage ?? 'en',
+      });
+      setDetectedLocality(result.locality);
+      setLocationAttribution(result.attribution);
+    } catch {
+      setLocationError(t('home.locationLookupError'));
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void Location.getForegroundPermissionsAsync()
+      .then((permission) => {
+        if (permission.granted) void updateCurrentLocation(false);
+      })
+      .catch(() => setLocationError(t('home.locationLookupError')));
+  }, []);
+
+  useEffect(() => {
+    setAreaInput(locality);
+  }, [locality]);
+
+  const useCurrentLocation = () => {
+    setSelectedLocality('');
+    void updateCurrentLocation(true);
+  };
+
   const discoveryCards: DiscoveryCardData[] = [
     {
       href: '/businesses',
@@ -55,7 +116,9 @@ export default function HomeScreen() {
     {
       href: '/tourism',
       icon: 'map-marker-radius-outline',
-      title: t('home.tourism.teaserTitle'),
+      title: t('home.tourism.teaserTitle', {
+        town: locality || t('town'),
+      }),
       description: t('home.tourism.teaserDescription'),
     },
   ];
@@ -81,7 +144,7 @@ export default function HomeScreen() {
                 {t('brand')}
               </Text>
               <Text variant="labelSmall" style={styles.brandCaption}>
-                {t('town')} · Andhra Pradesh
+                {locality || t('town')} · Andhra Pradesh
               </Text>
             </View>
           </View>
@@ -89,21 +152,72 @@ export default function HomeScreen() {
 
         <View style={[styles.hero, isWide && styles.wideHero]}>
           <View style={styles.heroCopy}>
-            <View style={styles.locationPill}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('home.useCurrentLocation')}
+              disabled={locationLoading}
+              onPress={useCurrentLocation}
+              style={styles.locationPill}
+            >
               <MaterialCommunityIcons
-                name="map-marker"
+                name={locationLoading ? 'loading' : 'map-marker'}
                 size={15}
                 color="#D8F6E8"
               />
               <Text variant="labelMedium" style={styles.locationText}>
-                {t('town')}, Andhra Pradesh
+                {locationLoading
+                  ? t('home.locationLoading')
+                  : `${locality || t('town')}, Andhra Pradesh`}
               </Text>
+              {!locationLoading && (
+                <MaterialCommunityIcons
+                  name="crosshairs-gps"
+                  size={14}
+                  color="#D8F6E8"
+                />
+              )}
+            </Pressable>
+            {locationAttribution && !selectedLocality ? (
+              <Link href="https://www.openstreetmap.org/copyright" asChild>
+                <Pressable accessibilityRole="link">
+                  <Text variant="labelSmall" style={styles.locationAttribution}>
+                    {locationAttribution}
+                  </Text>
+                </Pressable>
+              </Link>
+            ) : null}
+            {locationError ? (
+              <Text accessibilityRole="alert" style={styles.locationError}>
+                {locationError}
+              </Text>
+            ) : null}
+            <View style={styles.customLocationPicker}>
+              <TextInput
+                dense
+                label={t('home.customAreaLabel')}
+                value={areaInput}
+                onChangeText={setAreaInput}
+                onSubmitEditing={() => setSelectedLocality(areaInput.trim())}
+                returnKeyType="done"
+                style={styles.customLocationInput}
+              />
+              <Button
+                mode="outlined"
+                disabled={!areaInput.trim()}
+                onPress={() => setSelectedLocality(areaInput.trim())}
+                textColor="#FFFFFF"
+                style={styles.customLocationButton}
+              >
+                {t('home.customAreaButton')}
+              </Button>
             </View>
             <Text
               variant={isWide ? 'displaySmall' : 'headlineMedium'}
               style={styles.heroTitle}
             >
-              {t('home.heroTitle')}
+              {t('home.heroTitle', {
+                town: locality || t('town'),
+              })}
             </Text>
             <Text variant="bodyLarge" style={styles.heroSubtitle}>
               {t('home.heroTagline')}
@@ -152,7 +266,7 @@ export default function HomeScreen() {
         <View style={styles.sectionHeading}>
           <View>
             <Text variant="headlineSmall" style={styles.sectionTitle}>
-              {t('home.discoveryTitle')}
+              {t('home.discoveryTitle', { town: locality || t('town') })}
             </Text>
             <Text variant="bodyMedium" style={styles.sectionSubtitle}>
               {t('home.discoverySubtitle')}
@@ -314,7 +428,9 @@ export default function HomeScreen() {
               {t('home.communityTitle')}
             </Text>
             <Text variant="bodySmall" style={styles.communitySubtitle}>
-              {t('home.communitySubtitle')}
+              {t('home.communitySubtitle', {
+                town: locality || t('town'),
+              })}
             </Text>
           </View>
           <MaterialCommunityIcons name="heart" size={18} color="#E28186" />
@@ -471,6 +587,25 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: '#E7F8EF',
+  },
+  locationAttribution: {
+    color: '#D5EFE3',
+  },
+  locationError: {
+    color: '#FFE0D6',
+  },
+  customLocationPicker: {
+    width: '100%',
+    maxWidth: 340,
+    gap: 6,
+    marginBottom: 2,
+  },
+  customLocationInput: {
+    backgroundColor: '#FFFFFF',
+  },
+  customLocationButton: {
+    alignSelf: 'flex-start',
+    borderColor: 'rgba(255,255,255,0.75)',
   },
   heroTitle: {
     maxWidth: 470,

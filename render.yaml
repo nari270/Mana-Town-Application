@@ -19,8 +19,26 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: 'false'
       - key: CLIENT_ORIGIN
         value: https://manatown-web.onrender.com
+      - key: GEOCODING_BASE_URL
+        sync: false
+      - key: GEOCODING_USER_AGENT
+        sync: false
+      - key: GEOCODING_ATTRIBUTION
+        sync: false
 
   - type: web
     name: manatown-web

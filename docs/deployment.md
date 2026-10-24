@@ -17,6 +17,23 @@ migration depends on its `auth` schema and removes the legacy username/password
 columns. Back up the source database before deploying. The one-time
 Neon-to-Supabase data copy is separate and is not run by Render.
 
+Business photos are stored in a private S3-compatible bucket. Configure
+`S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` on the
+Render API service before enabling owner uploads. Set `S3_ENDPOINT` for
+non-AWS providers and `S3_FORCE_PATH_STYLE=true` when required by that provider.
+The API returns short-lived signed photo URLs; never expose storage credentials
+in the client or make the bucket public.
+
+The home page and business directory can reverse-geocode a user's location
+through the API. The default provider is OpenStreetMap Nominatim; it receives
+coordinates only after the user grants location access. Display the returned
+attribution, keep requests user-triggered, and do not exceed Nominatim's
+one-request-per-second application limit. The API caches lookups in memory and
+identifies itself with `GEOCODING_USER_AGENT`. Change `GEOCODING_BASE_URL` and
+`GEOCODING_ATTRIBUTION` in the API service settings to switch providers. This
+in-memory throttle is for a single API instance; use a shared cache and
+application-wide rate limiter before scaling to multiple instances.
+
 Expo Updates is only for JavaScript/assets compatible with the installed native
 runtime. Native changes require a new Android binary and may require store
 review. Before public launch, configure and verify the Supabase Auth email

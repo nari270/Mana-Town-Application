@@ -10,7 +10,7 @@
     "db:validate": "dotenv -e ../../.env -- prisma validate",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.prisma.json",
-    "test": "tsx --test src/app.spec.ts src/auth/auth.spec.ts src/businesses/businesses.service.spec.ts src/issues/issues.service.spec.ts src/entrepreneurs/entrepreneurs.service.spec.ts",
+    "test": "tsx --test src/app.spec.ts src/auth/auth.spec.ts src/businesses/businesses.service.spec.ts src/issues/issues.service.spec.ts src/entrepreneurs/entrepreneurs.service.spec.ts src/location/reverse-geocoding.service.spec.ts",
     "test:integration": "tsc -p tsconfig.json && node --test dist/integration/database-flows.spec.js",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
@@ -20,6 +20,8 @@
     "realtime:check": "dotenv -e ../../.env -- tsx scripts/realtime-check.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
     "@mana-town/shared-types": "0.1.0",
     "@neon/realtime": "^0.1.2",
     "@nestjs/common": "^11.1.6",

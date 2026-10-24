@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import { issueSubmissionSchema } from '@mana-town/validation';
 import { AppFooter } from '../src/AppFooter';
 import { createIssue, getApiErrorMessage, getMyIssues } from '../src/api';
 import { NatureBackdrop } from '../src/NatureBackdrop';
+import { useLocationContext } from '../src/LocationContext';
 
 type IssueForm = z.infer<typeof issueSubmissionSchema>;
 
@@ -25,19 +26,25 @@ const defaultValues: IssueForm = {
   title: '',
   description: '',
   category: '',
-  locality: 'Kadiri',
+  locality: '',
 };
 
 const categories = ['roads', 'water', 'sanitation', 'electricity', 'other'];
 
 export default function ReportIssueScreen() {
   const { t } = useTranslation();
+  const { locality } = useLocationContext();
   const queryClient = useQueryClient();
   const [submittedReference, setSubmittedReference] = useState('');
   const form = useForm<IssueForm>({
     resolver: zodResolver(issueSubmissionSchema),
-    defaultValues,
+    defaultValues: { ...defaultValues, locality },
   });
+  useEffect(() => {
+    if (!form.getFieldState('locality').isDirty) {
+      form.setValue('locality', locality);
+    }
+  }, [form, locality]);
   const reports = useQuery({
     queryKey: ['issues', 'mine'],
     queryFn: getMyIssues,
@@ -46,7 +53,7 @@ export default function ReportIssueScreen() {
     mutationFn: createIssue,
     onSuccess: async (issue) => {
       setSubmittedReference(issue.reference);
-      form.reset(defaultValues);
+      form.reset({ ...defaultValues, locality });
       await queryClient.invalidateQueries({ queryKey: ['issues', 'mine'] });
     },
   });
