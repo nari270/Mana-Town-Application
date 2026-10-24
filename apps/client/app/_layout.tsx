@@ -36,11 +36,11 @@ export default function RootLayout() {
   const area = segments[0] as string | undefined;
 
   useEffect(() => {
-    if (!navigationState?.key) return;
+    if (!ready || !navigationState?.key) return;
     if (!session && area !== 'login') router.replace('/login');
     else if (area === 'admin' && !hasRole(session, 'ADMIN'))
       router.replace('/');
-  }, [area, session, navigationState?.key, router]);
+  }, [area, session, navigationState?.key, router, ready]);
 
   useEffect(() => {
     let active = true;
