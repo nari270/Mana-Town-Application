@@ -32,6 +32,14 @@ export class BusinessesController {
     return this.businesses.listMine(user.id);
   }
 
+  @Get('mine/stats')
+  @UseGuards(AuthenticationGuard, RolesGuard)
+  @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'View counts for the signed-in owner’s businesses' })
+  viewStats(@CurrentUser() user: AuthenticatedUser) {
+    return this.businesses.viewStats(user.id);
+  }
+
   @Post()
   @UseGuards(AuthenticationGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
@@ -67,14 +75,21 @@ export class BusinessesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Search approved public business listings' })
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Search approved business listings (signed in)' })
   list(@Query() query: BusinessQueryDto) {
     return this.businesses.list(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get an approved public business listing' })
-  getById(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.businesses.getById(id);
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Get an approved business listing (signed in)' })
+  async getById(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    const business = await this.businesses.getById(id);
+    await this.businesses.recordView(id, user.id);
+    return business;
   }
 }

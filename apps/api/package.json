@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "dotenv -e ../../.env -- node dist/main.js",
-    "dev": "dotenv -e ../../.env -- tsx watch src/main.ts",
+    "dev": "tsc -p tsconfig.json && dotenv -e ../../.env -- node dist/main.js",
     "db:validate": "dotenv -e ../../.env -- prisma validate",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.prisma.json",

@@ -51,6 +51,22 @@ live only in your local `.env` or deployment secret store, never in the repo.
 Demo seeding is refused when `NODE_ENV=production`. SMS OTP and self
 registration are deliberately out of scope for now.
 
+### What needs sign-in
+
+Everything except `GET /advertisements`, the ad impression/click events and the
+health checks requires a signed-in user. The login page shows active
+advertisements as a teaser; all businesses, categories, entrepreneurs and
+realtime data are behind sign-in.
+
+- **Business owners** see view totals, unique viewers and 7-day views for their
+  own businesses (`GET /businesses/mine/stats`). Owners' own visits and viewer
+  identities are not counted or exposed.
+- **Admins** see who accessed the app (`GET /admin/access/summary` and
+  `/admin/access/logs`): successful and failed sign-ins and each signed-in
+  user's requests, with IP address and user agent. The in-app screen is
+  `/admin/access`. Review your retention and privacy obligations before
+  collecting this for real residents.
+
 ## Checks
 
 - `npm run typecheck`

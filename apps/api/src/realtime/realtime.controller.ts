@@ -1,9 +1,11 @@
-import { Controller, Inject, Post } from '@nestjs/common';
+import { Controller, Inject, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { RealtimeService } from './realtime.service.js';
 
 @ApiTags('realtime')
 @Controller('realtime')
+@UseGuards(AuthenticationGuard)
 export class RealtimeController {
   constructor(
     @Inject(RealtimeService) private readonly realtime: RealtimeService,

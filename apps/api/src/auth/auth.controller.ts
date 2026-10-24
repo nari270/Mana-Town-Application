@@ -29,6 +29,7 @@ export class AuthController {
       input.username,
       input.password,
       request.ip ?? 'unknown',
+      request.headers['user-agent'],
     );
   }
 

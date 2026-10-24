@@ -28,12 +28,14 @@ export class EntrepreneursController {
   constructor(private readonly entrepreneurs: EntrepreneursService) {}
 
   @Get()
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Search approved women entrepreneur businesses' })
   list(@Query() query: EntrepreneurQueryDto) {
     return this.entrepreneurs.list(query);
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Read an approved women entrepreneur business' })
   getById(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.entrepreneurs.getById(id);

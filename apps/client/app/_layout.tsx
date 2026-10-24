@@ -36,9 +36,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!navigationState?.key) return;
-    const protectedArea =
-      area === 'owner' || area === 'report-issue' || area === 'admin';
-    if (protectedArea && !session) router.replace('/login');
+    if (!session && area !== 'login') router.replace('/login');
     else if (area === 'admin' && !hasRole(session, 'ADMIN'))
       router.replace('/');
   }, [area, session, navigationState?.key, router]);

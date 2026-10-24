@@ -18,6 +18,7 @@ import {
   createBusiness,
   getApiErrorMessage,
   getBusinessCategories,
+  getBusinessViewStats,
   getOwnBusinesses,
   requestEntrepreneurClassification,
   submitBusiness,
@@ -52,6 +53,10 @@ export default function OwnerPortalScreen() {
   const businesses = useQuery({
     queryKey: ['businesses', 'mine'],
     queryFn: getOwnBusinesses,
+  });
+  const viewStats = useQuery({
+    queryKey: ['businesses', 'mine', 'stats'],
+    queryFn: getBusinessViewStats,
   });
   const form = useForm<BusinessForm>({
     resolver: zodResolver(businessSubmissionSchema),
@@ -164,6 +169,20 @@ export default function OwnerPortalScreen() {
         <Text variant="headlineMedium" style={styles.heading}>
           {t('owner.title')}
         </Text>
+        <Text variant="titleLarge">{t('ownerStats.title')}</Text>
+        {viewStats.data?.length === 0 && <Text>{t('ownerStats.empty')}</Text>}
+        {viewStats.data?.map((stat) => (
+          <Card key={stat.id} mode="outlined">
+            <Card.Content style={styles.state}>
+              <Text variant="titleMedium">{stat.name}</Text>
+              <Text>
+                {t('ownerStats.totalViews')}: {stat.totalViews} ·{' '}
+                {t('ownerStats.uniqueViewers')}: {stat.uniqueViewers} ·{' '}
+                {t('ownerStats.last7Days')}: {stat.viewsLast7Days}
+              </Text>
+            </Card.Content>
+          </Card>
+        ))}
         <Text variant="titleLarge">{t('owner.createTitle')}</Text>
         {field('name', t('owner.name'))}
         {field('description', t('owner.description'), true)}

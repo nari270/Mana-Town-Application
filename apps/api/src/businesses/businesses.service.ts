@@ -167,6 +167,57 @@ export class BusinessesService {
     };
   }
 
+  async recordView(businessId: string, viewerId: string) {
+    const isOwner = await this.prisma.businessOwnership.findUnique({
+      where: { businessId_userId: { businessId, userId: viewerId } },
+      select: { userId: true },
+    });
+    if (isOwner) return;
+    await this.prisma.businessView.create({ data: { businessId, viewerId } });
+  }
+
+  async viewStats(userId: string) {
+    const owned = await this.prisma.business.findMany({
+      where: { ownerships: { some: { userId } } },
+      select: { id: true, name: true, status: true },
+      orderBy: { name: 'asc' },
+    });
+    const ids = owned.map(({ id }) => id);
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [views, recent, viewers] = await Promise.all([
+      this.prisma.businessView.groupBy({
+        by: ['businessId'],
+        where: { businessId: { in: ids } },
+        _count: { _all: true },
+      }),
+      this.prisma.businessView.groupBy({
+        by: ['businessId'],
+        where: { businessId: { in: ids }, createdAt: { gte: since } },
+        _count: { _all: true },
+      }),
+      this.prisma.businessView.groupBy({
+        by: ['businessId', 'viewerId'],
+        where: { businessId: { in: ids } },
+      }),
+    ]);
+    const total = new Map(
+      views.map((row) => [row.businessId, row._count._all]),
+    );
+    const week = new Map(
+      recent.map((row) => [row.businessId, row._count._all]),
+    );
+    const unique = new Map<string, number>();
+    for (const row of viewers) {
+      unique.set(row.businessId, (unique.get(row.businessId) ?? 0) + 1);
+    }
+    return owned.map((business) => ({
+      ...business,
+      totalViews: total.get(business.id) ?? 0,
+      uniqueViewers: unique.get(business.id) ?? 0,
+      viewsLast7Days: week.get(business.id) ?? 0,
+    }));
+  }
+
   async listCategories() {
     return this.prisma.businessCategory.findMany({
       orderBy: { nameEnglish: 'asc' },

@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, Chip, HelperText, Text, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { getApiErrorMessage, login } from '../src/api';
+import {
+  getAdvertisements,
+  getApiErrorMessage,
+  login,
+  trackAdvertisement,
+} from '../src/api';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -19,6 +24,16 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const ads = useQuery({
+    queryKey: ['advertisements', 'login'],
+    queryFn: () => getAdvertisements(),
+  });
+
+  useEffect(() => {
+    for (const ad of ads.data ?? []) {
+      void trackAdvertisement(ad.id, 'IMPRESSION').catch(() => undefined);
+    }
+  }, [ads.data]);
 
   async function submit() {
     if (!username.trim() || !password) {
@@ -82,10 +97,24 @@ export default function LoginScreen() {
           >
             {t('auth.signIn')}
           </Button>
-          <Link href="/" asChild>
-            <Button mode="text">{t('auth.backHome')}</Button>
-          </Link>
         </View>
+        {ads.data && ads.data.length > 0 && (
+          <View style={styles.ads}>
+            <Text variant="titleMedium" style={styles.title}>
+              {t('auth.sponsoredTitle')}
+            </Text>
+            {ads.data.map((ad) => (
+              <View key={ad.id} style={styles.ad}>
+                <Chip compact icon="bullhorn">
+                  {t('adminAds.sponsored')}
+                </Chip>
+                <Text variant="titleSmall">{ad.name}</Text>
+                {ad.business && <Text>{ad.business.name}</Text>}
+              </View>
+            ))}
+            <Text style={styles.subtitle}>{t('auth.sponsoredNote')}</Text>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -107,4 +136,19 @@ const styles = StyleSheet.create({
   },
   title: { color: '#0B6B4F', fontWeight: '700' },
   subtitle: { color: '#5C6F68' },
+  ads: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 420,
+    gap: 10,
+    marginTop: 16,
+  },
+  ad: {
+    gap: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DDEAE3',
+    backgroundColor: '#E6F3EC',
+    padding: 14,
+  },
 });

@@ -121,6 +121,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         const categories = await apiRequest<{ id: string; slug: string }[]>(
           baseUrl,
           '/business-categories',
+          { identity: residents.resident },
         );
         const category = categories.find(({ slug }) => slug === 'tailoring');
         assert.ok(category, 'Fictional seed category should be present.');
@@ -149,7 +150,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         assert.equal(updatedCategory.nameEnglish, `Updated Category ${suffix}`);
         const publicCategories = await apiRequest<
           { id: string; nameEnglish: string }[]
-        >(baseUrl, '/business-categories');
+        >(baseUrl, '/business-categories', { identity: residents.resident });
         assert.ok(publicCategories.some(({ id }) => id === createdCategory.id));
 
         const updatedUser = await apiRequest<{
@@ -207,8 +208,49 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         });
         const publicListings = await apiRequest<{
           items: { id: string; status?: string }[];
-        }>(baseUrl, `/businesses?search=${encodeURIComponent(businessName)}`);
+        }>(baseUrl, `/businesses?search=${encodeURIComponent(businessName)}`, {
+          identity: residents.resident,
+        });
         assert.ok(publicListings.items.some(({ id }) => id === business.id));
+
+        for (const path of [
+          '/businesses',
+          `/businesses/${business.id}`,
+          '/business-categories',
+          '/entrepreneurs',
+          '/realtime/businesses/live',
+        ]) {
+          const response = await fetch(`${baseUrl}/api/v1${path}`, {
+            method: path.startsWith('/realtime') ? 'POST' : 'GET',
+          });
+          assert.equal(response.status, 401, `${path} requires sign-in.`);
+        }
+
+        await apiRequest(baseUrl, `/businesses/${business.id}`, {
+          identity: residents.resident,
+        });
+        await apiRequest(baseUrl, `/businesses/${business.id}`, {
+          identity: residents.resident,
+        });
+        await apiRequest(baseUrl, `/businesses/${business.id}`, {
+          identity: residents.owner,
+        });
+        const stats = await apiRequest<
+          {
+            id: string;
+            totalViews: number;
+            uniqueViewers: number;
+            viewsLast7Days: number;
+          }[]
+        >(baseUrl, '/businesses/mine/stats', { identity: residents.owner });
+        const businessStats = stats.find(({ id }) => id === business.id);
+        assert.equal(businessStats?.totalViews, 2, 'Owner views are excluded.');
+        assert.equal(businessStats?.uniqueViewers, 1);
+        assert.equal(businessStats?.viewsLast7Days, 2);
+        const anonymousStats = await fetch(
+          `${baseUrl}/api/v1/businesses/mine/stats`,
+        );
+        assert.equal(anonymousStats.status, 401);
 
         const issue = await apiRequest<{ id: string; status: string }>(
           baseUrl,
@@ -293,6 +335,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         }>(
           baseUrl,
           `/entrepreneurs?search=${encodeURIComponent(businessName)}`,
+          { identity: residents.resident },
         );
         assert.ok(
           publicEntrepreneurs.items.some(({ id }) => id === business.id),
@@ -352,6 +395,46 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
           pausedCampaigns.some(({ id }) => id === campaign.id),
           false,
         );
+
+        // Access logs are written asynchronously.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const access = await apiRequest<{
+          items: {
+            event: string;
+            username: string | null;
+            path: string | null;
+          }[];
+        }>(baseUrl, '/admin/access/logs?pageSize=100', {
+          identity: residents.admin,
+        });
+        assert.ok(access.items.some(({ event }) => event === 'LOGIN_SUCCESS'));
+        assert.ok(
+          access.items.some(
+            ({ event, username }) =>
+              event === 'LOGIN_FAILED' && username === 'admin',
+          ),
+        );
+        assert.ok(
+          access.items.some(
+            ({ path }) => path === `/api/v1/businesses/${business.id}`,
+          ),
+        );
+        const accessSummary = await apiRequest<{
+          users: { username: string; loginCount: number }[];
+        }>(baseUrl, '/admin/access/summary', { identity: residents.admin });
+        assert.ok(
+          (accessSummary.users.find(({ username }) => username === 'resident')
+            ?.loginCount ?? 0) >= 1,
+        );
+        const deniedAccess = await fetch(
+          `${baseUrl}/api/v1/admin/access/logs`,
+          {
+            headers: {
+              Authorization: `Bearer ${await tokenFor(baseUrl, residents.owner)}`,
+            },
+          },
+        );
+        assert.equal(deniedAccess.status, 403);
       } finally {
         await app.close();
       }

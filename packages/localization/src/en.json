@@ -118,6 +118,7 @@
     "pendingEntrepreneurs": "Pending women-owned reviews",
     "activeAds": "Active advertisements",
     "users": "Users",
+    "accessLog": "Access log",
     "businessReviews": "Business approvals",
     "entrepreneurReviews": "Women-owned classification reviews",
     "issues": "Local issue reports",
@@ -178,7 +179,29 @@
     "signedInAs": "Signed in as {{name}}",
     "signedOut": "You are browsing as a guest",
     "required": "Enter your username and password.",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "sponsoredTitle": "Happening in Kadiri",
+    "sponsoredNote": "Sign in to browse businesses and see full details."
+  },
+  "accessLog": {
+    "title": "Who accessed the app",
+    "failedLogins": "Failed sign-in attempts",
+    "logins": "Sign-ins",
+    "requests": "Actions",
+    "lastLogin": "Last sign-in",
+    "never": "Never",
+    "recent": "Recent activity",
+    "LOGIN_SUCCESS": "Signed in",
+    "LOGIN_FAILED": "Failed sign-in",
+    "REQUEST": "Accessed",
+    "empty": "No activity recorded yet."
+  },
+  "ownerStats": {
+    "title": "Views of your businesses",
+    "totalViews": "Total views",
+    "uniqueViewers": "Unique viewers",
+    "last7Days": "Last 7 days",
+    "empty": "No businesses yet."
   },
   "directory": {
     "title": "Local businesses",

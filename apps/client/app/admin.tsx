@@ -151,6 +151,9 @@ export default function AdminScreen() {
           <Link href="/admin/advertisements" asChild>
             <Button mode="outlined">{t('admin.advertisements')}</Button>
           </Link>
+          <Link href="/admin/access" asChild>
+            <Button mode="outlined">{t('admin.accessLog')}</Button>
+          </Link>
         </View>
         <Text variant="titleLarge">{t('admin.overview')}</Text>
         {dashboard.isPending && (

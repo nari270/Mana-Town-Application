@@ -292,6 +292,54 @@ export type AdminCampaign = {
   clicks: number;
 };
 
+export type BusinessViewStats = {
+  id: string;
+  name: string;
+  status: BusinessStatus;
+  totalViews: number;
+  uniqueViewers: number;
+  viewsLast7Days: number;
+};
+
+export function getBusinessViewStats() {
+  return request<BusinessViewStats[]>('/businesses/mine/stats');
+}
+
+export type AccessSummary = {
+  failedLogins: number;
+  users: {
+    id: string;
+    username: string | null;
+    displayName: string;
+    roles: string[];
+    loginCount: number;
+    lastLoginAt: string | null;
+    requestCount: number;
+  }[];
+};
+
+export type AccessLogEntry = {
+  id: string;
+  username: string | null;
+  event: 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'REQUEST';
+  method: string | null;
+  path: string | null;
+  statusCode: number | null;
+  ipAddress: string | null;
+  createdAt: string;
+  user: { displayName: string } | null;
+};
+
+export function getAccessSummary() {
+  return request<AccessSummary>('/admin/access/summary');
+}
+
+export function getAccessLogs(pageSize = 50) {
+  return request<{ items: AccessLogEntry[]; total: number }>(
+    `/admin/access/logs?pageSize=${pageSize}`,
+  );
+}
+
 export function getAdminDashboard() {
   return request<AdminDashboardData>('/admin/dashboard');
 }

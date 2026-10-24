@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AccessLogService } from './access-log.service.js';
 import { verifyPassword } from './password.js';
 import { createToken, requireAuthSecret } from './token.js';
 
@@ -22,11 +23,35 @@ export class AuthService {
     { count: number; first: number }
   >();
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AccessLogService) private readonly accessLog: AccessLogService,
+  ) {}
 
-  async login(username: string, password: string, clientKey: string) {
+  async login(
+    username: string,
+    password: string,
+    clientKey: string,
+    userAgent?: string,
+  ) {
     const key = `${clientKey}|${username.toLowerCase()}`;
-    this.assertNotLocked(key);
+    const audit = {
+      username: username.toLowerCase(),
+      method: 'POST',
+      path: '/api/v1/auth/login',
+      ipAddress: clientKey,
+      userAgent,
+    };
+    try {
+      this.assertNotLocked(key);
+    } catch (error) {
+      this.accessLog.record({
+        ...audit,
+        event: 'LOGIN_FAILED',
+        statusCode: 429,
+      });
+      throw error;
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { username: username.toLowerCase() },
@@ -43,10 +68,21 @@ export class AuthService {
     );
     if (!user || !user.passwordHash || !valid) {
       this.recordFailure(key);
+      this.accessLog.record({
+        ...audit,
+        event: 'LOGIN_FAILED',
+        statusCode: 401,
+      });
       throw new UnauthorizedException('Incorrect username or password.');
     }
 
     this.failures.delete(key);
+    this.accessLog.record({
+      ...audit,
+      userId: user.id,
+      event: 'LOGIN_SUCCESS',
+      statusCode: 200,
+    });
     const secret = requireAuthSecret(process.env.AUTH_JWT_SECRET);
     return {
       token: createToken(user.id, secret, TOKEN_TTL_SECONDS),

@@ -67,6 +67,8 @@ model User {
   businessModerations  BusinessModerationHistory[]   @relation("BusinessModerator")
   issueStatusActions   IssueStatusHistory[]           @relation("IssueStatusActor")
   issueNotes           IssueInternalNote[]            @relation("IssueNoteAuthor")
+  accessLogs           AccessLog[]
+  businessViews        BusinessView[]
 
   @@map("users")
 }
@@ -123,6 +125,7 @@ model Business {
   moderation      BusinessModerationHistory[]
   entrepreneur    EntrepreneurClassification?
   advertiserFor   AdvertisementCampaign[]
+  views           BusinessView[]
 
   @@index([status, locality])
   @@index([name])
@@ -317,6 +320,38 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model AccessLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  username   String?  @db.VarChar(50)
+  event      String   @db.VarChar(30)
+  method     String?  @db.VarChar(10)
+  path       String?  @db.VarChar(300)
+  statusCode Int?     @map("status_code")
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.VarChar(300)
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([event, createdAt])
+  @@map("access_logs")
+}
+
+model BusinessView {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  viewerId   String   @map("viewer_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  viewer     User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([viewerId])
+  @@map("business_views")
 }
 
 model AppConfiguration {
