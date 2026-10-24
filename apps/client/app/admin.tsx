@@ -3,6 +3,7 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { AppFooter } from '../src/AppFooter';
 import { Button, Card, Text, TextInput } from 'react-native-paper';
 import type { IssueStatus } from '@mana-town/shared-types';
 import {
@@ -16,6 +17,7 @@ import {
   rejectEntrepreneur,
   updateIssueStatus,
 } from '../src/api';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 
 const nextIssueStatuses: Record<IssueStatus, IssueStatus[]> = {
   SUBMITTED: ['UNDER_REVIEW', 'REJECTED'],
@@ -132,6 +134,7 @@ export default function AdminScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/" asChild>
           <Button mode="text" icon="arrow-left">
@@ -429,14 +432,16 @@ export default function AdminScreen() {
           </Text>
         )}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

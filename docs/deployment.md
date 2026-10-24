@@ -1,18 +1,31 @@
 # Deployment
 
-The CI workflow currently validates changes only. Production web deployment,
-database provisioning, Expo OTA publishing, Android distribution, and rollback
-are not yet configured; protected host and Expo credentials are required.
+The CI workflow currently validates changes only. Render configuration is
+present, but a production deployment, hosted database cutover, Expo OTA
+publishing, Android distribution, and rollback are not verified; protected host
+and Supabase credentials are required.
 
 Keep development, staging, and production isolated. Validate additive database
 migrations before release; use an expand/migrate/contract approach for breaking
 changes. Block release on mandatory tests. Record deployed commit and release
 version and retain a known-good rollback target.
 
+The Render API build runs `prisma migrate deploy` against the configured
+database. Set `DATABASE_URL` to the Supabase session-pooler URL and `DIRECT_URL`
+to that same Supabase project's direct PostgreSQL URL; the Supabase auth
+migration depends on its `auth` schema and removes the legacy username/password
+columns. Back up the source database before deploying. The one-time
+Neon-to-Supabase data copy is separate and is not run by Render.
+
 Expo Updates is only for JavaScript/assets compatible with the installed native
 runtime. Native changes require a new Android binary and may require store
-review. A production authentication provider must be selected before public
-launch.
+review. Before public launch, configure and verify the Supabase Auth email
+confirmation and delivery settings for the production project.
+Signup confirmation links redirect to the first origin in `CLIENT_ORIGIN` at
+`/login`. Add a matching URL (for local development, for example
+`http://localhost:8081/**`) to Supabase Authentication > URL Configuration >
+Redirect URLs. If a custom confirmation email template is used, ensure its link
+uses `{{ .ConfirmationURL }}` so Supabase applies the requested redirect.
 
 Hosting, domain, managed database, object storage, bandwidth, CI minutes, and
 Expo build/update services may incur charges; compare current provider pricing

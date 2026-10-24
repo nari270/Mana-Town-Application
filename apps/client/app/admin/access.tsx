@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Text } from 'react-native-paper';
 import { getAccessLogs, getAccessSummary } from '../../src/api';
+import { AppFooter } from '../../src/AppFooter';
+import { NatureBackdrop } from '../../src/NatureBackdrop';
 
 export default function AdminAccessScreen() {
   const { t } = useTranslation();
@@ -20,6 +22,7 @@ export default function AdminAccessScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/admin" asChild>
           <Button mode="text" icon="arrow-left">
@@ -91,12 +94,18 @@ export default function AdminAccessScreen() {
           </Card>
         ))}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flexGrow: 1, backgroundColor: '#F8F9FA', padding: 20 },
+  page: {
+    position: 'relative',
+    flexGrow: 1,
+    backgroundColor: 'transparent',
+    padding: 20,
+  },
   content: { width: '100%', maxWidth: 1000, alignSelf: 'center', gap: 12 },
   heading: { color: '#0B6B4F', fontWeight: '700' },
   card: { gap: 4 },

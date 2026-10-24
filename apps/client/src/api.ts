@@ -10,14 +10,56 @@ import { clearSession, getSession, setSession, type Session } from './session';
 const apiBaseUrl =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
-export async function login(username: string, password: string) {
-  const session = await request<Session>('/auth/login', {
-    method: 'POST',
-    body: { username, password },
-    anonymous: true,
-  });
+type AuthResponse = Omit<Session, 'expiresAt'> & { expiresIn: number };
+
+function storeAuthResponse(result: AuthResponse) {
+  const session: Session = {
+    token: result.token,
+    refreshToken: result.refreshToken,
+    expiresAt: Date.now() + result.expiresIn * 1000,
+    user: result.user,
+  };
   setSession(session);
   return session;
+}
+
+export async function login(email: string, password: string) {
+  const result = await request<AuthResponse>('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+    anonymous: true,
+  });
+  return storeAuthResponse(result);
+}
+
+export async function register(
+  email: string,
+  password: string,
+  displayName: string,
+) {
+  const result = await request<
+    AuthResponse | { requiresEmailConfirmation: true; message: string }
+  >('/auth/register', {
+    method: 'POST',
+    body: { email, password, displayName },
+    anonymous: true,
+  });
+  if ('token' in result) {
+    return {
+      session: storeAuthResponse(result),
+      requiresEmailConfirmation: false,
+      message: '',
+    };
+  }
+  return { session: null, ...result };
+}
+
+export async function logout() {
+  try {
+    if (getSession()) await request('/auth/logout', { method: 'POST' });
+  } finally {
+    clearSession();
+  }
 }
 export class ApiClientError extends Error {
   constructor(
@@ -91,8 +133,28 @@ async function request<T>(
 ): Promise<T> {
   let response: Response;
   const headers: Record<string, string> = {};
+  let session = options.anonymous ? null : getSession();
+  if (
+    session &&
+    session.expiresAt <= Date.now() + 60_000 &&
+    path !== '/auth/refresh'
+  ) {
+    try {
+      const refreshed = await request<AuthResponse>('/auth/refresh', {
+        method: 'POST',
+        body: { refreshToken: session.refreshToken },
+        anonymous: true,
+      });
+      session = storeAuthResponse(refreshed);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
+        clearSession();
+      }
+      throw error;
+    }
+  }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  const token = options.anonymous ? undefined : getSession()?.token;
+  const token = session?.token;
   if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
@@ -268,7 +330,7 @@ export type AdminUser = {
   displayName: string;
   createdAt: string;
   roles: {
-    role: 'RESIDENT' | 'BUSINESS_OWNER' | 'WOMEN_ENTREPRENEUR' | 'ADMIN';
+    role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
   }[];
 };
 

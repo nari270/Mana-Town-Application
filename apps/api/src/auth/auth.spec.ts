@@ -1,38 +1,62 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { hashPassword, verifyPassword } from './password.js';
-import { createToken, requireAuthSecret, verifyToken } from './token.js';
+import { validateSync } from 'class-validator';
+import { LoginDto, RefreshDto, RegisterDto } from './auth.dto.js';
+import { getEmailConfirmationRedirectTo } from './auth.service.js';
 
-const secret = 'test-secret-that-is-at-least-32-characters';
-
-test('passwords verify only against their own hash', async () => {
-  const hash = await hashPassword('correct horse battery');
-  assert.equal(await verifyPassword('correct horse battery', hash), true);
-  assert.equal(await verifyPassword('wrong password!!', hash), false);
-  assert.equal(await verifyPassword('anything', 'not-a-hash'), false);
-  assert.notEqual(hash, await hashPassword('correct horse battery'));
+test('signup confirmation redirects to the configured web login page', () => {
+  const originalOrigin = process.env.CLIENT_ORIGIN;
+  process.env.CLIENT_ORIGIN =
+    'http://localhost:8081,https://manatown-web.onrender.com';
+  try {
+    assert.equal(
+      getEmailConfirmationRedirectTo(),
+      'http://localhost:8081/login',
+    );
+  } finally {
+    if (originalOrigin === undefined) delete process.env.CLIENT_ORIGIN;
+    else process.env.CLIENT_ORIGIN = originalOrigin;
+  }
 });
 
-test('tokens round-trip and reject tampering, expiry, and wrong secrets', () => {
-  const now = Date.now();
-  const token = createToken('user-1', secret, 60, now);
-  assert.equal(verifyToken(token, secret, now)?.sub, 'user-1');
-  assert.equal(verifyToken(token, `${secret}x`, now), null);
-  assert.equal(verifyToken(token, secret, now + 61_000), null);
+test('login requires a valid email and password', () => {
+  const valid = Object.assign(new LoginDto(), {
+    email: 'resident@example.com',
+    password: 'correct horse battery',
+  });
+  assert.equal(validateSync(valid).length, 0);
 
-  const [header, , signature] = token.split('.');
-  const forgedBody = Buffer.from(
-    JSON.stringify({ sub: 'admin', iat: 1, exp: 9_999_999_999 }),
-  ).toString('base64url');
-  assert.equal(
-    verifyToken(`${header}.${forgedBody}.${signature}`, secret),
-    null,
+  const invalid = Object.assign(new LoginDto(), {
+    email: 'not-an-email',
+    password: 'short',
+  });
+  assert.ok(validateSync(invalid).length > 0);
+});
+
+test('registration enforces the public account requirements', () => {
+  const valid = Object.assign(new RegisterDto(), {
+    email: 'new-user@example.com',
+    password: 'correct horse battery',
+    displayName: 'New User',
+  });
+  assert.equal(validateSync(valid).length, 0);
+
+  const invalid = Object.assign(new RegisterDto(), {
+    email: 'new-user@example.com',
+    password: 'short',
+    displayName: 'A',
+  });
+  assert.ok(validateSync(invalid).length > 0);
+});
+
+test('refresh requires a refresh token', () => {
+  assert.ok(
+    validateSync(Object.assign(new RefreshDto(), { refreshToken: '' })).length,
   );
-  assert.equal(verifyToken('garbage', secret), null);
-});
-
-test('a strong signing secret is required', () => {
-  assert.throws(() => requireAuthSecret(undefined));
-  assert.throws(() => requireAuthSecret('short'));
-  assert.equal(requireAuthSecret(secret), secret);
+  assert.equal(
+    validateSync(
+      Object.assign(new RefreshDto(), { refreshToken: 'refresh-token-value' }),
+    ).length,
+    0,
+  );
 });

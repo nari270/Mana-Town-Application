@@ -15,7 +15,9 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { issueSubmissionSchema } from '@mana-town/validation';
+import { AppFooter } from '../src/AppFooter';
 import { createIssue, getApiErrorMessage, getMyIssues } from '../src/api';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 
 type IssueForm = z.infer<typeof issueSubmissionSchema>;
 
@@ -79,6 +81,7 @@ export default function ReportIssueScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/" asChild>
           <Button mode="text" icon="arrow-left">
@@ -168,14 +171,16 @@ export default function ReportIssueScreen() {
           </Card>
         ))}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

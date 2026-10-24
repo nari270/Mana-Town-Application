@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { RequestTransactionInterceptor } from '../prisma/request-transaction.interceptor.js';
 import { AccessLogController } from './access-log.controller.js';
 import { AccessLogInterceptor } from './access-log.interceptor.js';
 import { AccessLogService } from './access-log.service.js';
@@ -17,8 +18,9 @@ import { RolesGuard } from './roles.guard.js';
     AuthenticationGuard,
     RolesGuard,
     AccessLogService,
+    { provide: APP_INTERCEPTOR, useClass: RequestTransactionInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AccessLogInterceptor },
   ],
-  exports: [AuthenticationGuard, RolesGuard, AccessLogService],
+  exports: [AuthService, AuthenticationGuard, RolesGuard, AccessLogService],
 })
 export class AuthModule {}

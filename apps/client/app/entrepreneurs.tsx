@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { AppFooter } from '../src/AppFooter';
 import { Button, Card, Chip, Text, TextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
@@ -15,6 +16,7 @@ import {
   getEntrepreneurs,
   getApiErrorMessage,
 } from '../src/api';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 
 export default function EntrepreneursScreen() {
   const { t, i18n } = useTranslation();
@@ -44,6 +46,7 @@ export default function EntrepreneursScreen() {
   const items = profiles.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/" asChild>
           <Button mode="text" icon="arrow-left">
@@ -211,14 +214,16 @@ export default function EntrepreneursScreen() {
           </Button>
         )}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F5F9F7',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

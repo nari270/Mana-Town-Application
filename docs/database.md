@@ -23,12 +23,29 @@ Prisma client, apply the development migration, and load fictional demo data.
 The API readiness endpoint at `/api/v1/health/ready` checks the database
 connection; `/api/v1/health` checks only that the API process is alive.
 
-## Neon connection URLs
+## Connection URLs
 
-For Neon, configure `DATABASE_URL` with the pooled endpoint shown by Neon for
-long-lived API runtime use. Configure `DIRECT_URL` with the unpooled endpoint
-for Prisma migrations. The Prisma datasource maps `url` and `directUrl` to these
-variables. Keep the credentials in each environment's secret store.
+For local development, configure `DATABASE_URL` and `DIRECT_URL` with the local
+PostgreSQL URLs from `.env.example`. For Supabase, use the session pooler for
+`DATABASE_URL` and the direct connection for `DIRECT_URL`; keep both in the
+environment secret store. The Prisma datasource maps `url` and `directUrl` to
+these variables.
+
+The Supabase migration maps legacy `RESIDENT` and `WOMEN_ENTREPRENEUR` roles to
+`CUSTOMER` and `BUSINESS_OWNER`, removes the legacy username/password-hash
+fields, and links application users to Supabase Auth IDs. It enables and forces
+RLS, grants only the required table operations, and applies per-table policies
+for customer-owned reports, business ownership, admin workflows, and the public
+advertisement exception. The Nest API wraps each HTTP request in a transaction,
+sets the database role to `authenticated`, and sets `request.jwt.claim.sub` only
+after Supabase validates the access token. Anonymous API requests have no user
+claim and can access only eligible advertisements and their events.
+
+Run `npm run db:verify-rls -w @mana-town/api` against the migrated project after
+seeding the demo accounts. It creates two temporary issue rows, verifies
+anonymous denial and cross-user read/update isolation, then removes the rows.
+The seed and other explicitly privileged maintenance tasks continue using the
+server-side database connection outside request context.
 
 ## Backup and restore
 

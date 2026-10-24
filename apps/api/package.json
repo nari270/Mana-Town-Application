@@ -16,6 +16,7 @@
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "db:verify-rls": "dotenv -e ../../.env -- tsx prisma/verify-rls.ts",
     "realtime:check": "dotenv -e ../../.env -- tsx scripts/realtime-check.ts"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@nestjs/platform-express": "^11.1.6",
     "@nestjs/swagger": "^11.2.0",
     "@prisma/client": "^6.16.2",
+    "@supabase/supabase-js": "2.118.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "helmet": "^8.1.0",

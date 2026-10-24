@@ -1,5 +1,5 @@
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import { Link, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   Linking,
   ScrollView,
@@ -15,15 +15,23 @@ import {
   getBusinesses,
   getApiErrorMessage,
 } from '../src/api';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 import { useTranslation } from 'react-i18next';
+import { AppFooter } from '../src/AppFooter';
 
 export default function BusinessesScreen() {
   const { t, i18n } = useTranslation();
+  const { category: categoryParam } = useLocalSearchParams<{
+    category?: string;
+  }>();
   const { width } = useWindowDimensions();
   const isWide = width >= 760;
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(categoryParam ?? '');
+  useEffect(() => {
+    setCategory(categoryParam ?? '');
+  }, [categoryParam]);
   const categories = useQuery({
     queryKey: ['business-categories'],
     queryFn: getBusinessCategories,
@@ -45,9 +53,18 @@ export default function BusinessesScreen() {
         : undefined,
   });
   const items = businesses.data?.pages.flatMap((page) => page.items) ?? [];
+  const selectedCategory = categories.data?.find(
+    (item) => item.slug === category,
+  );
+  const heading = selectedCategory
+    ? i18n.resolvedLanguage === 'te'
+      ? selectedCategory.nameTelugu
+      : selectedCategory.nameEnglish
+    : t('directory.title');
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/" asChild>
           <Button mode="text" icon="arrow-left">
@@ -64,7 +81,7 @@ export default function BusinessesScreen() {
           </View>
           <View style={styles.headingCopy}>
             <Text variant="headlineMedium" style={styles.heading}>
-              {t('directory.title')}
+              {heading}
             </Text>
             <View style={styles.location}>
               <MaterialCommunityIcons
@@ -261,14 +278,16 @@ export default function BusinessesScreen() {
           </Button>
         )}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F5F9F7',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

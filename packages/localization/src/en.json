@@ -12,10 +12,19 @@
   "home": {
     "welcome": "Discover Kadiri",
     "intro": "Find trusted local services and make a difference right here in your community.",
+    "heroTitle": "Find what you need, right here in Kadiri.",
+    "heroTagline": "Your town, connected.",
+    "heroDescription": "Local businesses, community help and places worth discovering.",
     "explore": "Explore local businesses",
     "exploreShort": "Explore",
     "servicesTitle": "Explore ManaTown",
     "servicesSubtitle": "Everything your local community needs, in one place.",
+    "discoveryTitle": "Explore Kadiri",
+    "discoverySubtitle": "Choose a service or guide to get started.",
+    "farmCard": {
+      "title": "Farm services",
+      "description": "Agriculture, farm workers and transport for local growers."
+    },
     "businesses": {
       "title": "Local businesses",
       "description": "Find shops, services and products nearby."
@@ -32,7 +41,54 @@
       "title": "My business",
       "description": "Create and manage your local listing."
     },
+    "farmServices": {
+      "title": "Farm & agriculture services",
+      "shortTitle": "Farm services",
+      "description": "Find crop, grain, vegetable, livestock, poultry and farm supply services."
+    },
+    "farmLabour": {
+      "title": "Farm labour & workforce",
+      "shortTitle": "Farm workers",
+      "description": "Find workers for sowing, harvesting and farm work."
+    },
+    "farmTransport": {
+      "title": "Farm goods transport",
+      "shortTitle": "Transport",
+      "description": "Find tractors and goods vehicles for farm produce and supplies."
+    },
     "adminDescription": "Review listings, reports and community services.",
+    "tourism": {
+      "eyebrow": "VISITOR GUIDE",
+      "title": "Explore near Kadiri",
+      "subtitle": "Local landmarks and a nearby heritage day trip, with directions.",
+      "teaserTitle": "Plan a visit around Kadiri",
+      "teaserDescription": "See three local and regional highlights, view photos and open directions.",
+      "openMap": "Open in Google Maps",
+      "photoCredit": "Photo: {{artist}} · CC BY-SA 4.0 · Wikimedia Commons",
+      "linkError": "Could not open that link. Please try again.",
+      "places": {
+        "kadiriTemple": {
+          "title": "Sri Lakshmi Narasimha Swamy Temple",
+          "description": "A historic temple in Kadiri, noted for Vijayanagara-era inscriptions."
+        },
+        "thimmamma": {
+          "title": "Thimmamma Marrimanu",
+          "description": "A remarkable banyan tree and nature landmark about 25 km from Kadiri."
+        },
+        "penukonda": {
+          "title": "Penukonda Fort",
+          "description": "A historic hill fort in the region; check directions and access before your trip."
+        }
+      }
+    },
+    "reportAction": {
+      "title": "Something needs attention?",
+      "description": "Report a local issue and follow its progress."
+    },
+    "ownerAction": {
+      "title": "Have a local business?",
+      "description": "Create a listing or manage your business profile."
+    },
     "communityTitle": "Together, we grow",
     "communitySubtitle": "Support local businesses. Build a stronger Kadiri."
   },
@@ -148,9 +204,8 @@
     "title": "User and role management",
     "saveRoles": "Save roles",
     "selfEditBlocked": "You cannot change your own roles.",
-    "RESIDENT": "Resident",
+    "CUSTOMER": "Customer",
     "BUSINESS_OWNER": "Business owner",
-    "WOMEN_ENTREPRENEUR": "Women entrepreneur",
     "ADMIN": "Administrator"
   },
   "adminAds": {
@@ -171,14 +226,21 @@
   },
   "auth": {
     "title": "Sign in",
-    "subtitle": "Use your ManaTown username and password to continue.",
-    "username": "Username",
+    "subtitle": "Use your email and password to continue.",
+    "registerSubtitle": "Create an account to use ManaTown.",
+    "email": "Email address",
+    "displayName": "Full name",
     "password": "Password",
     "signIn": "Sign in",
+    "createAccount": "Create account",
+    "needAccount": "New to ManaTown? Create an account",
+    "haveAccount": "Already have an account? Sign in",
+    "confirmEmail": "Check your email to confirm your account.",
     "signOut": "Sign out",
     "signedInAs": "Signed in as {{name}}",
     "signedOut": "You are browsing as a guest",
-    "required": "Enter your username and password.",
+    "required": "Enter your email and password.",
+    "signOutError": "We could not revoke your session. Please try signing out again.",
     "backHome": "Back to home",
     "sponsoredTitle": "Happening in Kadiri",
     "sponsoredNote": "Sign in to browse businesses and see full details.",

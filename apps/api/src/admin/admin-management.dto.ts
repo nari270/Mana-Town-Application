@@ -40,7 +40,7 @@ export class AdminUserQueryDto {
 export class UpdateUserRolesDto {
   @IsArray()
   @ArrayUnique()
-  @ArrayMaxSize(4)
+  @ArrayMaxSize(3)
   @IsEnum(UserRole, { each: true })
   roles!: UserRole[];
 }

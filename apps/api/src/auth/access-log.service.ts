@@ -23,23 +23,25 @@ export class AccessLogService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   // Logging must never break the request that triggered it.
-  record(entry: AccessEntry): void {
-    void this.prisma.accessLog
-      .create({
-        data: {
-          userId: entry.userId ?? null,
-          username: clip(entry.username, 50) ?? null,
-          event: entry.event,
-          method: clip(entry.method, 10) ?? null,
-          path: clip(entry.path, 300) ?? null,
-          statusCode: entry.statusCode ?? null,
-          ipAddress: clip(entry.ipAddress, 64) ?? null,
-          userAgent: clip(entry.userAgent, 300) ?? null,
-        },
-      })
-      .catch((error: unknown) =>
-        this.logger.warn(`Access log write failed: ${String(error)}`),
+  async record(entry: AccessEntry): Promise<void> {
+    try {
+      await this.prisma.runAsService(() =>
+        this.prisma.accessLog.create({
+          data: {
+            userId: entry.userId ?? null,
+            username: clip(entry.username, 254) ?? null,
+            event: entry.event,
+            method: clip(entry.method, 10) ?? null,
+            path: clip(entry.path, 300) ?? null,
+            statusCode: entry.statusCode ?? null,
+            ipAddress: clip(entry.ipAddress, 64) ?? null,
+            userAgent: clip(entry.userAgent, 300) ?? null,
+          },
+        }),
       );
+    } catch (error) {
+      this.logger.warn(`Access log write failed: ${String(error)}`);
+    }
   }
 
   async list(options: {
@@ -82,7 +84,7 @@ export class AccessLogService {
       this.prisma.user.findMany({
         select: {
           id: true,
-          username: true,
+          email: true,
           displayName: true,
           roles: { select: { role: true } },
         },
@@ -109,7 +111,7 @@ export class AccessLogService {
       failedLogins: failures,
       users: users.map((user) => ({
         id: user.id,
-        username: user.username,
+        username: user.email,
         displayName: user.displayName,
         roles: user.roles.map(({ role }) => role),
         loginCount: loginByUser.get(user.id)?._count.id ?? 0,

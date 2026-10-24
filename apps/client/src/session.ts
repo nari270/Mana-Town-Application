@@ -2,11 +2,17 @@ import { useSyncExternalStore } from 'react';
 
 export type SessionUser = {
   id: string;
+  authUserId: string;
   displayName: string;
   roles: string[];
 };
 
-export type Session = { token: string; user: SessionUser };
+export type Session = {
+  token: string;
+  refreshToken: string;
+  expiresAt: number;
+  user: SessionUser;
+};
 
 const STORAGE_KEY = 'manatown.session';
 
@@ -24,7 +30,12 @@ function load(): Session | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Session;
-    return typeof parsed.token === 'string' && parsed.user ? parsed : null;
+    return typeof parsed.token === 'string' &&
+      typeof parsed.refreshToken === 'string' &&
+      typeof parsed.expiresAt === 'number' &&
+      typeof parsed.user?.authUserId === 'string'
+      ? parsed
+      : null;
   } catch {
     return null;
   }

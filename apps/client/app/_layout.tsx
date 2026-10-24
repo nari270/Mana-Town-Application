@@ -13,6 +13,7 @@ import {
   MD3LightTheme,
   PaperProvider,
 } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
 import { I18nextProvider } from 'react-i18next';
 import { initializeLocalization, localization } from '@mana-town/localization';
 
@@ -22,7 +23,7 @@ const theme = {
     ...MD3LightTheme.colors,
     primary: '#0B6B4F',
     secondary: '#4CAF50',
-    background: '#F8F9FA',
+    background: '#EAF3E9',
   },
 };
 
@@ -57,10 +58,15 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={theme}>
           {ready ? (
-            <>
-              <Stack screenOptions={{ headerShown: false }} />
+            <View style={styles.appCanvas}>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: 'transparent' },
+                }}
+              />
               <ProfileMenu />
-            </>
+            </View>
           ) : (
             <ActivityIndicator
               accessibilityLabel="Loading application"
@@ -73,3 +79,11 @@ export default function RootLayout() {
     </I18nextProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  appCanvas: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: '#EAF3E9',
+  },
+});

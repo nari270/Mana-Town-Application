@@ -6,6 +6,11 @@ coverage/
 .env
 .env.*
 !.env.example
+supabase/.temp/
+supabase/.env*
+scripts/*.local.ps1
+*.pem
+*.key
 *.log
 *.tsbuildinfo
 apps/client/android/

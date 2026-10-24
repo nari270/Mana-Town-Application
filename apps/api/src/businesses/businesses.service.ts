@@ -251,6 +251,7 @@ export class BusinessesService {
 
     const record = await this.prisma.business.create({
       data: {
+        createdByAuthUserId: this.prisma.currentAuthUserId(),
         name: input.name.trim(),
         description: input.description.trim(),
         address: input.address.trim(),

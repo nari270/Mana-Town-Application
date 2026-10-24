@@ -36,25 +36,39 @@ Expo after changing it. The readiness
 route returns HTTP 503 while PostgreSQL is unavailable; liveness alone does not
 prove the database is ready.
 
-For Neon, set `DATABASE_URL` to the pooled connection string for API traffic and
-`DIRECT_URL` to the unpooled connection string for Prisma migrations. Keep both
-URLs in the deployment secret store; never commit credentials.
+Local development uses the Compose PostgreSQL URLs in `.env.example`. For a
+Supabase deployment, set `DATABASE_URL` to the session-pooler connection string
+and `DIRECT_URL` to the direct database connection string. Configure
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and the server-only
+`SUPABASE_SECRET_KEY`; keep database credentials and the secret key in the
+deployment secret store, never in the repo or frontend.
 
 ## Sign-in
 
-The API uses username/password login (`POST /api/v1/auth/login`). Set
-`AUTH_JWT_SECRET` (32+ random characters). To create the demo accounts
-`admin`, `owner`, `resident` and `entrepreneur`, set `SEED_DEMO_DATA=true` and a
-`SEED_PASSWORD_<NAME>` (12+ characters) for each, then run `npm run db:seed`.
-Re-running the seed resets those passwords to the configured values. Passwords
-live only in your local `.env` or deployment secret store, never in the repo.
-Demo seeding is refused when `NODE_ENV=production`. SMS OTP and self
-registration are deliberately out of scope for now.
+The API uses Supabase email/password Auth (`POST /api/v1/auth/login`) and
+supports account registration. Supabase email-confirmation settings determine
+whether registration signs the user in immediately. To create the local demo
+accounts `admin@manatown.test`, `owner@manatown.test`,
+`resident@manatown.test`, and `entrepreneur@manatown.test`, set
+`SEED_DEMO_DATA=true`, configure the Supabase URL and server secret key, and set
+a `SEED_PASSWORD_<NAME>` (12+ characters) for each account before running
+`npm run db:seed`. These reserved `.test` addresses cannot receive email.
+Re-running the seed resets their passwords to the configured values.
+Credentials live only in ignored local environment files or the hosting secret
+store. Demo seeding is refused when `NODE_ENV=production`.
+
+The Supabase migration includes per-table RLS policies and request-scoped
+database identity for the Nest API. Apply it with `npm run db:deploy`, provision
+the demo accounts with `npm run db:seed`, and verify isolation with
+`npm run db:verify-rls -w @mana-town/api` against a dedicated non-production
+project before deployment. Do not run the demo seed or verification against
+production.
 
 ### What needs sign-in
 
-Everything except `GET /advertisements`, the ad impression/click events and the
-health checks requires a signed-in user. The login page shows active
+All routes except authentication (`/auth/login`, `/auth/register`,
+`/auth/refresh`), `GET /advertisements`, the ad impression/click events, and
+health checks require a signed-in user. The login page shows active
 advertisements as a teaser; all businesses, categories, entrepreneurs and
 realtime data are behind sign-in.
 

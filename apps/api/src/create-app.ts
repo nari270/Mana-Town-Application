@@ -3,11 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
-import { requireAuthSecret } from './auth/token.js';
 
 export async function createApp() {
-  requireAuthSecret(process.env.AUTH_JWT_SECRET);
-
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
   app.setGlobalPrefix('api/v1');

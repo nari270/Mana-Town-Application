@@ -19,10 +19,11 @@ async function tokenFor(baseUrl: string, username: string) {
   const envName = `SEED_PASSWORD_${username.toUpperCase()}`;
   const password = process.env[envName];
   assert.ok(password, `Set ${envName}`);
+  const email = `${username}@manatown.test`;
   const response = await fetch(`${baseUrl}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
   assert.equal(response.status, 200, `login failed for ${username}`);
   const { token } = (await response.json()) as { token: string };
@@ -103,7 +104,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            username: 'admin',
+            email: 'admin@manatown.test',
             password: 'wrong-password-1',
           }),
         });
@@ -159,7 +160,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         }>(baseUrl, `/admin/users/${residentUserId}/roles`, {
           method: 'PATCH',
           identity: residents.admin,
-          body: { roles: ['RESIDENT', 'BUSINESS_OWNER'] },
+          body: { roles: ['CUSTOMER', 'BUSINESS_OWNER'] },
         });
         assert.ok(
           updatedUser.roles.some(({ role }) => role === 'BUSINESS_OWNER'),
@@ -411,7 +412,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         assert.ok(
           access.items.some(
             ({ event, username }) =>
-              event === 'LOGIN_FAILED' && username === 'admin',
+              event === 'LOGIN_FAILED' && username === 'admin@manatown.test',
           ),
         );
         assert.ok(
@@ -420,11 +421,12 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
           ),
         );
         const accessSummary = await apiRequest<{
-          users: { username: string; loginCount: number }[];
+          users: { username: string | null; loginCount: number }[];
         }>(baseUrl, '/admin/access/summary', { identity: residents.admin });
         assert.ok(
-          (accessSummary.users.find(({ username }) => username === 'resident')
-            ?.loginCount ?? 0) >= 1,
+          (accessSummary.users.find(
+            ({ username }) => username === 'resident@manatown.test',
+          )?.loginCount ?? 0) >= 1,
         );
         const deniedAccess = await fetch(
           `${baseUrl}/api/v1/admin/access/logs`,

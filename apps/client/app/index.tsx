@@ -5,51 +5,23 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { AppFooter } from '../src/AppFooter';
 import { hasRole, useSession } from '../src/session';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 
 type Destination =
-  '/businesses' | '/entrepreneurs' | '/report-issue' | '/owner' | '/admin';
+  '/businesses' | '/entrepreneurs' | '/report-issue' | '/owner' | '/tourism';
 
-const services: {
-  key: 'businesses' | 'entrepreneurs' | 'issues' | 'owners';
-  destination: Destination;
+type DiscoveryCardData = {
+  href: Href;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-  color: string;
-  background: string;
-}[] = [
-  {
-    key: 'businesses',
-    destination: '/businesses',
-    icon: 'storefront-outline',
-    color: '#087C5D',
-    background: '#DDF5E9',
-  },
-  {
-    key: 'entrepreneurs',
-    destination: '/entrepreneurs',
-    icon: 'account-heart-outline',
-    color: '#D74379',
-    background: '#FCE5EF',
-  },
-  {
-    key: 'issues',
-    destination: '/report-issue',
-    icon: 'lightbulb-on-outline',
-    color: '#B87908',
-    background: '#FFF1C9',
-  },
-  {
-    key: 'owners',
-    destination: '/owner',
-    icon: 'store-edit-outline',
-    color: '#3976CC',
-    background: '#E2EEFF',
-  },
-];
+  title: string;
+  description: string;
+};
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -58,12 +30,42 @@ export default function HomeScreen() {
   const isCompact = width < 440;
   const session = useSession();
   const adminMode = hasRole(session, 'ADMIN');
+  const discoveryCards: DiscoveryCardData[] = [
+    {
+      href: '/businesses',
+      icon: 'storefront-outline',
+      title: t('home.businesses.title'),
+      description: t('home.businesses.description'),
+    },
+    {
+      href: '/entrepreneurs',
+      icon: 'account-heart-outline',
+      title: t('home.entrepreneurs.title'),
+      description: t('home.entrepreneurs.description'),
+    },
+    {
+      href: {
+        pathname: '/businesses',
+        params: { category: 'farm-agriculture-services' },
+      },
+      icon: 'sprout-outline',
+      title: t('home.farmCard.title'),
+      description: t('home.farmCard.description'),
+    },
+    {
+      href: '/tourism',
+      icon: 'map-marker-radius-outline',
+      title: t('home.tourism.teaserTitle'),
+      description: t('home.tourism.teaserDescription'),
+    },
+  ];
 
   return (
     <ScrollView
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
+      <NatureBackdrop />
       <View style={[styles.content, isWide && styles.wideContent]}>
         <View style={styles.topBar}>
           <View style={styles.brandLockup}>
@@ -101,13 +103,13 @@ export default function HomeScreen() {
               variant={isWide ? 'displaySmall' : 'headlineMedium'}
               style={styles.heroTitle}
             >
-              {t('home.welcome')}
+              {t('home.heroTitle')}
             </Text>
             <Text variant="bodyLarge" style={styles.heroSubtitle}>
-              {t('tagline')}
+              {t('home.heroTagline')}
             </Text>
             <Text variant="bodyMedium" style={styles.heroDescription}>
-              {t('home.intro')}
+              {t('home.heroDescription')}
             </Text>
             <Link href="/businesses" asChild>
               <Button
@@ -150,88 +152,149 @@ export default function HomeScreen() {
         <View style={styles.sectionHeading}>
           <View>
             <Text variant="headlineSmall" style={styles.sectionTitle}>
-              {t('home.servicesTitle')}
+              {t('home.discoveryTitle')}
             </Text>
             <Text variant="bodyMedium" style={styles.sectionSubtitle}>
-              {t('home.servicesSubtitle')}
+              {t('home.discoverySubtitle')}
             </Text>
           </View>
-          <MaterialCommunityIcons
-            name="arrow-down-right"
-            size={24}
-            color="#69978A"
-          />
         </View>
 
-        <View style={styles.serviceGrid}>
-          {services.map((service) => (
-            <Link key={service.key} href={service.destination} asChild>
+        <View style={styles.discoveryGrid}>
+          {discoveryCards.map((card) => (
+            <Link key={card.title} href={card.href} asChild>
               <Pressable
                 accessibilityRole="link"
-                accessibilityLabel={t(`home.${service.key}.title`)}
+                accessibilityLabel={card.title}
                 style={({ pressed }) => [
-                  styles.serviceCard,
-                  isWide && styles.wideServiceCard,
+                  styles.discoveryCard,
+                  { width: isWide ? '47%' : '100%' },
                   pressed && styles.cardPressed,
                 ]}
               >
-                <View
-                  style={[
-                    styles.serviceIcon,
-                    { backgroundColor: service.background },
-                  ]}
-                >
+                <View style={styles.discoveryIcon}>
                   <MaterialCommunityIcons
-                    name={service.icon}
-                    size={28}
-                    color={service.color}
+                    name={card.icon}
+                    size={25}
+                    color="#087C5D"
                   />
                 </View>
-                <View style={styles.serviceCopy}>
-                  <Text variant="titleMedium" style={styles.serviceTitle}>
-                    {t(`home.${service.key}.title`)}
+                <View style={styles.discoveryCardCopy}>
+                  <Text variant="titleMedium" style={styles.discoveryCardTitle}>
+                    {card.title}
                   </Text>
-                  <Text variant="bodySmall" style={styles.serviceDescription}>
-                    {t(`home.${service.key}.description`)}
+                  <Text
+                    variant="bodySmall"
+                    style={styles.discoveryCardDescription}
+                  >
+                    {card.description}
                   </Text>
                 </View>
                 <MaterialCommunityIcons
-                  name="arrow-top-right"
+                  name="arrow-right"
                   size={19}
-                  color="#82968F"
+                  color="#087C5D"
                 />
               </Pressable>
             </Link>
           ))}
+        </View>
+
+        <View style={styles.communityActions}>
+          <Link href="/report-issue" asChild>
+            <Pressable
+              accessibilityRole="link"
+              style={({ pressed }) => [
+                styles.communityAction,
+                styles.reportAction,
+                isWide && styles.wideCommunityAction,
+                pressed && styles.cardPressed,
+              ]}
+            >
+              <View style={styles.reportActionIcon}>
+                <MaterialCommunityIcons
+                  name="lightbulb-on-outline"
+                  size={23}
+                  color="#A66D0A"
+                />
+              </View>
+              <View style={styles.actionCopy}>
+                <Text variant="titleMedium" style={styles.actionTitle}>
+                  {t('home.reportAction.title')}
+                </Text>
+                <Text variant="bodySmall" style={styles.actionDescription}>
+                  {t('home.reportAction.description')}
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={20}
+                color="#A66D0A"
+              />
+            </Pressable>
+          </Link>
+          <Link href="/owner" asChild>
+            <Pressable
+              accessibilityRole="link"
+              style={({ pressed }) => [
+                styles.communityAction,
+                styles.ownerAction,
+                isWide && styles.wideCommunityAction,
+                pressed && styles.cardPressed,
+              ]}
+            >
+              <View style={styles.ownerActionIcon}>
+                <MaterialCommunityIcons
+                  name="store-edit-outline"
+                  size={23}
+                  color="#087C5D"
+                />
+              </View>
+              <View style={styles.actionCopy}>
+                <Text variant="titleMedium" style={styles.actionTitle}>
+                  {t('home.ownerAction.title')}
+                </Text>
+                <Text variant="bodySmall" style={styles.actionDescription}>
+                  {t('home.ownerAction.description')}
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={20}
+                color="#087C5D"
+              />
+            </Pressable>
+          </Link>
           {adminMode && (
             <Link href="/admin" asChild>
               <Pressable
                 accessibilityRole="link"
                 style={({ pressed }) => [
-                  styles.serviceCard,
-                  isWide && styles.wideServiceCard,
+                  styles.communityAction,
+                  styles.adminAction,
+                  isWide && styles.wideCommunityAction,
                   pressed && styles.cardPressed,
                 ]}
               >
-                <View style={[styles.serviceIcon, styles.adminIcon]}>
+                <View style={styles.adminActionIcon}>
                   <MaterialCommunityIcons
                     name="view-dashboard-outline"
-                    size={28}
+                    size={23}
                     color="#7350B8"
                   />
                 </View>
-                <View style={styles.serviceCopy}>
-                  <Text variant="titleMedium" style={styles.serviceTitle}>
+                <View style={styles.actionCopy}>
+                  <Text variant="titleMedium" style={styles.actionTitle}>
                     {t('admin.title')}
                   </Text>
-                  <Text variant="bodySmall" style={styles.serviceDescription}>
+                  <Text variant="bodySmall" style={styles.actionDescription}>
                     {t('home.adminDescription')}
                   </Text>
                 </View>
                 <MaterialCommunityIcons
-                  name="arrow-top-right"
-                  size={19}
-                  color="#82968F"
+                  name="arrow-right"
+                  size={20}
+                  color="#7350B8"
                 />
               </Pressable>
             </Link>
@@ -280,6 +343,7 @@ export default function HomeScreen() {
             label={t('nav.profile')}
           />
         </View>
+        <AppFooter />
       </View>
     </ScrollView>
   );
@@ -322,8 +386,9 @@ function BottomNavItem({
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F5F9F7',
+    backgroundColor: 'transparent',
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 24,
@@ -544,62 +609,117 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: '#173F34',
     fontWeight: '800',
+    marginTop: 3,
   },
   sectionSubtitle: {
     marginTop: 2,
     color: '#74877F',
   },
-  serviceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  serviceCard: {
-    width: '48%',
-    minHeight: 145,
-    flexGrow: 1,
-    flexBasis: '45%',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5ECE8',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    elevation: 1,
-  },
-  wideServiceCard: {
-    width: '23%',
-    flexBasis: '22%',
-    minHeight: 168,
-    padding: 18,
-  },
   cardPressed: {
     opacity: 0.86,
     transform: [{ scale: 0.985 }],
   },
-  serviceIcon: {
-    width: 52,
-    height: 52,
+  discoveryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  discoveryCard: {
+    minHeight: 124,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2EAE4',
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    elevation: 1,
+  },
+  discoveryIcon: {
+    width: 48,
+    height: 48,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: 15,
+    backgroundColor: '#E7F2EA',
   },
-  adminIcon: {
-    backgroundColor: '#EFE7FB',
-  },
-  serviceCopy: {
-    width: '100%',
+  discoveryCardCopy: {
+    flex: 1,
     gap: 4,
-    marginTop: 12,
   },
-  serviceTitle: {
-    color: '#213F35',
+  discoveryCardTitle: {
+    color: '#193F34',
+    fontWeight: '800',
+  },
+  discoveryCardDescription: {
+    color: '#70847B',
+    lineHeight: 18,
+  },
+  communityActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  communityAction: {
+    minHeight: 92,
+    flex: 1,
+    flexBasis: '46%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    padding: 14,
+  },
+  wideCommunityAction: {
+    flexBasis: '30%',
+  },
+  reportAction: {
+    backgroundColor: '#FFF5DF',
+  },
+  ownerAction: {
+    backgroundColor: '#E3F0E8',
+  },
+  adminAction: {
+    backgroundColor: '#F1ECF9',
+  },
+  reportActionIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#F4E2B7',
+  },
+  ownerActionIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#CBE5D5',
+  },
+  adminActionIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#E2D8F2',
+  },
+  actionCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  actionTitle: {
+    color: '#193F34',
     fontWeight: '700',
   },
-  serviceDescription: {
-    color: '#74877F',
-    lineHeight: 18,
+  actionDescription: {
+    color: '#70847B',
+    lineHeight: 17,
   },
   communityBanner: {
     flexDirection: 'row',

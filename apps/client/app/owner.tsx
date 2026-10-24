@@ -27,6 +27,8 @@ import {
 } from '../src/api';
 import { useState } from 'react';
 import { z } from 'zod';
+import { AppFooter } from '../src/AppFooter';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 
 type BusinessForm = z.infer<typeof businessSubmissionSchema>;
 
@@ -160,6 +162,7 @@ export default function OwnerPortalScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/" asChild>
           <Button mode="text" icon="arrow-left">
@@ -344,14 +347,16 @@ export default function OwnerPortalScreen() {
           </Card>
         ))}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

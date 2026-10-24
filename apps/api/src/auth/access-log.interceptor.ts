@@ -7,7 +7,8 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, from, mergeMap, throwError } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AccessLogService } from './access-log.service.js';
 import type { AuthenticatedRequest } from './auth.types.js';
 
@@ -43,11 +44,14 @@ export class AccessLogInterceptor implements NestInterceptor {
         userAgent: request.headers['user-agent'],
       });
     return next.handle().pipe(
-      tap({
-        next: () => write(response.statusCode),
-        error: (error: unknown) =>
+      mergeMap((value) =>
+        from(write(response.statusCode)).pipe(map(() => value)),
+      ),
+      catchError((error: unknown) =>
+        from(
           write(error instanceof HttpException ? error.getStatus() : 500),
-      }),
+        ).pipe(mergeMap(() => throwError(() => error))),
+      ),
     );
   }
 }

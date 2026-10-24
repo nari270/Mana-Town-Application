@@ -10,15 +10,12 @@ import {
   type AdminUser,
 } from '../../src/api';
 import { useSession } from '../../src/session';
+import { AppFooter } from '../../src/AppFooter';
+import { NatureBackdrop } from '../../src/NatureBackdrop';
 
 type Role = AdminUser['roles'][number]['role'];
 
-const roles: Role[] = [
-  'RESIDENT',
-  'BUSINESS_OWNER',
-  'WOMEN_ENTREPRENEUR',
-  'ADMIN',
-];
+const roles: Role[] = ['CUSTOMER', 'BUSINESS_OWNER', 'ADMIN'];
 
 export default function AdminUsersScreen() {
   const { t } = useTranslation();
@@ -42,6 +39,7 @@ export default function AdminUsersScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/admin" asChild>
           <Button mode="text" icon="arrow-left">
@@ -123,14 +121,16 @@ export default function AdminUsersScreen() {
           </Text>
         )}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

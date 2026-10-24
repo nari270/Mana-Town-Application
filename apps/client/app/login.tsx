@@ -18,10 +18,13 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { AppFooter } from '../src/AppFooter';
+import { NatureBackdrop } from '../src/NatureBackdrop';
 import {
   getAdvertisements,
   getApiErrorMessage,
   login,
+  register,
   trackAdvertisement,
 } from '../src/api';
 
@@ -32,17 +35,20 @@ const features: { icon: IconName; key: string }[] = [
   { icon: 'face-woman-shimmer-outline', key: 'auth.featureWomen' },
   { icon: 'bullhorn-outline', key: 'auth.featureIssues' },
 ];
-
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { width } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const wide = width >= 860;
-  const [username, setUsername] = useState('');
+  const shortViewport = height < 620;
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [registering, setRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const ads = useQuery({
     queryKey: ['advertisements', 'login'],
@@ -56,16 +62,30 @@ export default function LoginScreen() {
   }, [ads.data]);
 
   async function submit() {
-    if (!username.trim() || !password) {
+    if (!email.trim() || !password || (registering && !displayName.trim())) {
       setError(t('auth.required'));
       return;
     }
     setBusy(true);
     setError(undefined);
     try {
-      await login(username.trim(), password);
-      queryClient.clear();
-      router.replace('/');
+      if (registering) {
+        const result = await register(
+          email.trim(),
+          password,
+          displayName.trim(),
+        );
+        if (result.session) {
+          queryClient.clear();
+          router.replace('/');
+        } else {
+          setNotice(t('auth.confirmEmail'));
+        }
+      } else {
+        await login(email.trim(), password);
+        queryClient.clear();
+        router.replace('/');
+      }
     } catch (caught) {
       setError(getApiErrorMessage(caught, t));
     } finally {
@@ -75,9 +95,24 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.page}>
-        <View style={[styles.shell, wide && styles.shellWide]}>
-          <View style={[styles.brand, wide && styles.brandWide]}>
+      <ScrollView
+        contentContainerStyle={[styles.page, shortViewport && styles.shortPage]}
+      >
+        <NatureBackdrop />
+        <View
+          style={[
+            styles.shell,
+            wide && styles.shellWide,
+            wide && shortViewport && styles.shellWideShort,
+          ]}
+        >
+          <View
+            style={[
+              styles.brand,
+              wide && styles.brandWide,
+              wide && shortViewport && styles.brandWideShort,
+            ]}
+          >
             <View style={styles.circleLarge} />
             <View style={styles.circleSmall} />
             <View style={styles.logo}>
@@ -87,30 +122,43 @@ export default function LoginScreen() {
                 color="#087C5D"
               />
             </View>
-            <Text variant="headlineMedium" style={styles.brandName}>
+            <Text
+              variant={shortViewport ? 'titleLarge' : 'headlineMedium'}
+              style={styles.brandName}
+            >
               ManaTown
             </Text>
             <Text variant="titleMedium" style={styles.tagline}>
               {t('auth.brandTagline')}
             </Text>
-            <Text style={styles.intro}>{t('auth.brandIntro')}</Text>
-            <View style={styles.featureList}>
-              {features.map((feature) => (
-                <View key={feature.key} style={styles.feature}>
-                  <View style={styles.featureIcon}>
-                    <MaterialCommunityIcons
-                      name={feature.icon}
-                      size={20}
-                      color="#FFFFFF"
-                    />
+            {!shortViewport && (
+              <Text style={styles.intro}>{t('auth.brandIntro')}</Text>
+            )}
+            {!shortViewport && (
+              <View style={styles.featureList}>
+                {features.map((feature) => (
+                  <View key={feature.key} style={styles.feature}>
+                    <View style={styles.featureIcon}>
+                      <MaterialCommunityIcons
+                        name={feature.icon}
+                        size={20}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <Text style={styles.featureText}>{t(feature.key)}</Text>
                   </View>
-                  <Text style={styles.featureText}>{t(feature.key)}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
 
-          <View style={[styles.formPanel, wide && styles.formPanelWide]}>
+          <View
+            style={[
+              styles.formPanel,
+              wide && styles.formPanelWide,
+              wide && shortViewport && styles.formPanelWideShort,
+            ]}
+          >
             <SegmentedButtons
               density="small"
               value={i18n.resolvedLanguage === 'te' ? 'te' : 'en'}
@@ -121,21 +169,35 @@ export default function LoginScreen() {
               ]}
             />
             <Text variant="headlineSmall" style={styles.title}>
-              {t('auth.welcome')}
+              {registering ? t('auth.createAccount') : t('auth.welcome')}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {t('auth.subtitle')}
+              {t(registering ? 'auth.registerSubtitle' : 'auth.subtitle')}
             </Text>
+            {registering && (
+              <TextInput
+                mode="outlined"
+                label={t('auth.displayName')}
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                left={<TextInput.Icon icon="account-outline" />}
+                outlineStyle={styles.outline}
+              />
+            )}
             <TextInput
               mode="outlined"
-              label={t('auth.username')}
-              value={username}
-              onChangeText={setUsername}
+              label={t('auth.email')}
+              value={email}
+              onChangeText={setEmail}
               autoCapitalize="none"
-              autoComplete="username"
+              autoComplete="email"
               autoCorrect={false}
-              textContentType="username"
-              left={<TextInput.Icon icon="account-outline" />}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              left={<TextInput.Icon icon="email-outline" />}
               outlineStyle={styles.outline}
             />
             <TextInput
@@ -145,7 +207,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
-              autoComplete="current-password"
+              autoComplete={registering ? 'new-password' : 'current-password'}
               textContentType="password"
               onSubmitEditing={() => void submit()}
               left={<TextInput.Icon icon="lock-outline" />}
@@ -175,7 +237,23 @@ export default function LoginScreen() {
               disabled={busy}
               contentStyle={styles.buttonContent}
             >
-              {t('auth.signIn')}
+              {t(registering ? 'auth.createAccount' : 'auth.signIn')}
+            </Button>
+            {notice && (
+              <HelperText type="info" visible>
+                {notice}
+              </HelperText>
+            )}
+            <Button
+              mode="text"
+              disabled={busy}
+              onPress={() => {
+                setRegistering((value) => !value);
+                setError(undefined);
+                setNotice(undefined);
+              }}
+            >
+              {t(registering ? 'auth.haveAccount' : 'auth.needAccount')}
             </Button>
             <View style={styles.secure}>
               <MaterialCommunityIcons
@@ -186,7 +264,7 @@ export default function LoginScreen() {
               <Text style={styles.secureText}>{t('auth.secureNote')}</Text>
             </View>
 
-            {ads.data && ads.data.length > 0 && (
+            {!shortViewport && ads.data && ads.data.length > 0 && (
               <View style={styles.ads}>
                 <Text variant="titleSmall" style={styles.adsTitle}>
                   {t('auth.sponsoredTitle')}
@@ -210,14 +288,26 @@ export default function LoginScreen() {
             )}
           </View>
         </View>
+        <AppFooter compact={shortViewport} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#E8F4EE' },
-  page: { flexGrow: 1, justifyContent: 'center', padding: 16 },
+  flex: { flex: 1, backgroundColor: 'transparent' },
+  page: {
+    position: 'relative',
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+  shortPage: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
   shell: {
     alignSelf: 'center',
     width: '100%',
@@ -226,9 +316,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D3E8DD',
+    borderColor: 'rgba(193, 218, 198, 0.9)',
+    shadowColor: '#315E42',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.12,
+    shadowRadius: 32,
+    elevation: 8,
   },
-  shellWide: { maxWidth: 940, flexDirection: 'row', minHeight: 560 },
+  shellWide: { maxWidth: 940, flexDirection: 'row' },
+  shellWideShort: { minHeight: 0, maxWidth: 900 },
   brand: {
     overflow: 'hidden',
     gap: 10,
@@ -236,6 +332,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#087C5D',
   },
   brandWide: { flex: 1, justifyContent: 'center', padding: 40 },
+  brandWideShort: { padding: 20, gap: 6 },
   circleLarge: {
     position: 'absolute',
     top: -70,
@@ -278,6 +375,7 @@ const styles = StyleSheet.create({
   featureText: { color: '#FFFFFF', fontWeight: '600' },
   formPanel: { gap: 14, padding: 24 },
   formPanelWide: { flex: 1, justifyContent: 'center', padding: 40 },
+  formPanelWideShort: { padding: 16, gap: 7 },
   title: { color: '#134B3D', fontWeight: '800', marginTop: 6 },
   subtitle: { color: '#5C6F68' },
   outline: { borderRadius: 14 },

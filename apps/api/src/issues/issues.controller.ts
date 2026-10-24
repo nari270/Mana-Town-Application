@@ -29,11 +29,7 @@ export class IssuesController {
   constructor(private readonly issues: IssuesService) {}
 
   @Post()
-  @Roles(
-    UserRole.RESIDENT,
-    UserRole.BUSINESS_OWNER,
-    UserRole.WOMEN_ENTREPRENEUR,
-  )
+  @Roles(UserRole.CUSTOMER, UserRole.BUSINESS_OWNER, UserRole.BUSINESS_OWNER)
   @ApiOperation({ summary: 'Submit a private local issue report' })
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -43,11 +39,7 @@ export class IssuesController {
   }
 
   @Get('mine')
-  @Roles(
-    UserRole.RESIDENT,
-    UserRole.BUSINESS_OWNER,
-    UserRole.WOMEN_ENTREPRENEUR,
-  )
+  @Roles(UserRole.CUSTOMER, UserRole.BUSINESS_OWNER, UserRole.BUSINESS_OWNER)
   @ApiOperation({ summary: 'List only the signed-in user’s own reports' })
   listMine(@CurrentUser() user: AuthenticatedUser) {
     return this.issues.listMine(user.id);
@@ -55,9 +47,9 @@ export class IssuesController {
 
   @Get(':id')
   @Roles(
-    UserRole.RESIDENT,
+    UserRole.CUSTOMER,
     UserRole.BUSINESS_OWNER,
-    UserRole.WOMEN_ENTREPRENEUR,
+    UserRole.BUSINESS_OWNER,
     UserRole.ADMIN,
   )
   @ApiOperation({ summary: 'Read a report owned by the current user or admin' })

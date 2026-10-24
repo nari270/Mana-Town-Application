@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Divider, Menu, SegmentedButtons, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { clearSession, useSession } from './session';
+import { logout } from './api';
 
 function initials(name: string) {
   const letters = name
@@ -24,11 +25,17 @@ export function ProfileMenu() {
   if (!session) return null;
 
   const { displayName, roles } = session.user;
-  const signOut = () => {
+  const signOut = async () => {
     setOpen(false);
-    clearSession();
-    queryClient.clear();
-    router.replace('/login');
+    try {
+      await logout();
+    } catch {
+      Alert.alert(t('auth.signOutError'));
+    } finally {
+      clearSession();
+      queryClient.clear();
+      router.replace('/login');
+    }
   };
 
   return (

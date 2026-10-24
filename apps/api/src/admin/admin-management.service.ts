@@ -55,55 +55,54 @@ export class AdminManagementService {
       );
     }
     try {
-      return await this.prisma.$transaction(
-        async (transaction) => {
-          const target = await transaction.user.findUnique({
-            where: { id: targetId },
-            select: { id: true, roles: { select: { role: true } } },
-          });
-          if (!target) throw new NotFoundException('User not found.');
-          const removesAdministrator =
-            target.roles.some(({ role }) => role === UserRole.ADMIN) &&
-            !input.roles.includes(UserRole.ADMIN);
-          if (removesAdministrator) {
-            const administratorCount =
-              await transaction.userRoleAssignment.count({
-                where: { role: UserRole.ADMIN },
-              });
-            if (administratorCount <= 1) {
-              throw new ConflictException(
-                'The last administrator cannot be removed.',
-              );
-            }
-          }
-          await transaction.userRoleAssignment.deleteMany({
-            where: { userId: targetId },
-          });
-          if (input.roles.length > 0) {
-            await transaction.userRoleAssignment.createMany({
-              data: input.roles.map((role) => ({ userId: targetId, role })),
-            });
-          }
-          await transaction.auditLog.create({
-            data: {
-              actorId,
-              action: 'USER_ROLES_UPDATED',
-              entityType: 'USER',
-              entityId: targetId,
+      return await this.prisma.$transaction(async (transaction) => {
+        await transaction.$queryRaw`SELECT pg_advisory_xact_lock(1928374, 1)`;
+        const target = await transaction.user.findUnique({
+          where: { id: targetId },
+          select: { id: true, roles: { select: { role: true } } },
+        });
+        if (!target) throw new NotFoundException('User not found.');
+        const removesAdministrator =
+          target.roles.some(({ role }) => role === UserRole.ADMIN) &&
+          !input.roles.includes(UserRole.ADMIN);
+        if (removesAdministrator) {
+          const administratorCount = await transaction.userRoleAssignment.count(
+            {
+              where: { role: UserRole.ADMIN },
             },
+          );
+          if (administratorCount <= 1) {
+            throw new ConflictException(
+              'The last administrator cannot be removed.',
+            );
+          }
+        }
+        await transaction.userRoleAssignment.deleteMany({
+          where: { userId: targetId },
+        });
+        if (input.roles.length > 0) {
+          await transaction.userRoleAssignment.createMany({
+            data: input.roles.map((role) => ({ userId: targetId, role })),
           });
-          return transaction.user.findUniqueOrThrow({
-            where: { id: targetId },
-            select: {
-              id: true,
-              email: true,
-              displayName: true,
-              roles: { select: { role: true } },
-            },
-          });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      );
+        }
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: 'USER_ROLES_UPDATED',
+            entityType: 'USER',
+            entityId: targetId,
+          },
+        });
+        return transaction.user.findUniqueOrThrow({
+          where: { id: targetId },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            roles: { select: { role: true } },
+          },
+        });
+      });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -322,7 +321,6 @@ export class AdminManagementService {
   }
 
   async listPublicAdvertisements(placement?: string) {
-    await this.expireCampaigns();
     const now = new Date();
     return this.prisma.advertisementCampaign.findMany({
       where: {

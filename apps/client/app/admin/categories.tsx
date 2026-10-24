@@ -11,6 +11,8 @@ import {
   updateAdminCategory,
   type AdminCategory,
 } from '../../src/api';
+import { AppFooter } from '../../src/AppFooter';
+import { NatureBackdrop } from '../../src/NatureBackdrop';
 
 export default function AdminCategoriesScreen() {
   const { t } = useTranslation();
@@ -58,6 +60,7 @@ export default function AdminCategoriesScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
+      <NatureBackdrop />
       <View style={styles.content}>
         <Link href="/admin" asChild>
           <Button mode="text" icon="arrow-left">
@@ -151,14 +154,16 @@ export default function AdminCategoriesScreen() {
           </Card>
         ))}
       </View>
+      <AppFooter />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexGrow: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
     padding: 20,
   },
   content: {

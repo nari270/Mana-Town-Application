@@ -1,5 +1,6 @@
 node_modules/
 dist/
 .expo/
+.agents/
 apps/api/prisma/migrations/
 apps/client/expo-env.d.ts
