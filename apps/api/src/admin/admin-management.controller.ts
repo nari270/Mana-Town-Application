@@ -13,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
-import { MockAuthenticationGuard } from '../auth/mock-auth.guard.js';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import {
   AdminUserQueryDto,
@@ -27,7 +27,7 @@ import { AdminManagementService } from './admin-management.service.js';
 
 @ApiTags('admin')
 @Controller('admin')
-@UseGuards(MockAuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminManagementController {
   constructor(private readonly management: AdminManagementService) {}

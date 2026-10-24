@@ -13,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
-import { MockAuthenticationGuard } from '../auth/mock-auth.guard.js';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import {
   AdminIssueQueryDto,
@@ -24,7 +24,7 @@ import { IssuesService } from './issues.service.js';
 
 @ApiTags('issues')
 @Controller('issues')
-@UseGuards(MockAuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, RolesGuard)
 export class IssuesController {
   constructor(private readonly issues: IssuesService) {}
 
@@ -71,7 +71,7 @@ export class IssuesController {
 
 @ApiTags('admin/issues')
 @Controller('admin/issues')
-@UseGuards(MockAuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class IssueAdministrationController {
   constructor(private readonly issues: IssuesService) {}

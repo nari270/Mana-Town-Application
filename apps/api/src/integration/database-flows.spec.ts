@@ -4,10 +4,31 @@ import { test } from 'node:test';
 import { createApp } from '../create-app.js';
 
 const residents = {
-  resident: '00000000-0000-4000-8000-000000000001',
-  owner: '00000000-0000-4000-8000-000000000002',
-  admin: '00000000-0000-4000-8000-000000000004',
+  resident: 'resident',
+  owner: 'owner',
+  admin: 'admin',
 };
+
+const residentUserId = '00000000-0000-4000-8000-000000000001';
+
+const tokens = new Map<string, string>();
+
+async function tokenFor(baseUrl: string, username: string) {
+  const cached = tokens.get(username);
+  if (cached) return cached;
+  const envName = `SEED_PASSWORD_${username.toUpperCase()}`;
+  const password = process.env[envName];
+  assert.ok(password, `Set ${envName}`);
+  const response = await fetch(`${baseUrl}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  assert.equal(response.status, 200, `login failed for ${username}`);
+  const { token } = (await response.json()) as { token: string };
+  tokens.set(username, token);
+  return token;
+}
 
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PATCH';
@@ -21,7 +42,9 @@ async function apiRequest<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = {};
-  if (options.identity) headers['x-mock-user-id'] = options.identity;
+  if (options.identity) {
+    headers.Authorization = `Bearer ${await tokenFor(baseUrl, options.identity)}`;
+  }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(`${baseUrl}/api/v1${path}`, {
     method: options.method ?? 'GET',
@@ -54,7 +77,6 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         'Integration tests are restricted to the mana_town_test database.',
       );
       process.env.NODE_ENV = 'test';
-      process.env.MOCK_AUTH_ENABLED = 'true';
       const app = await createApp();
       try {
         await app.listen(0, '127.0.0.1');
@@ -70,6 +92,31 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
           service: 'mana-town-api',
           database: 'ok',
         });
+
+        const anonymous = await fetch(`${baseUrl}/api/v1/admin/dashboard`);
+        assert.equal(anonymous.status, 401, 'Anonymous requests are rejected.');
+        const forged = await fetch(`${baseUrl}/api/v1/admin/dashboard`, {
+          headers: { 'x-mock-user-id': '00000000-0000-4000-8000-000000000004' },
+        });
+        assert.equal(forged.status, 401, 'Mock identity header is ignored.');
+        const badPassword = await fetch(`${baseUrl}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'admin',
+            password: 'wrong-password-1',
+          }),
+        });
+        assert.equal(badPassword.status, 401, 'Wrong password is rejected.');
+        const residentToken = await tokenFor(baseUrl, residents.resident);
+        const forbidden = await fetch(`${baseUrl}/api/v1/admin/dashboard`, {
+          headers: { Authorization: `Bearer ${residentToken}` },
+        });
+        assert.equal(forbidden.status, 403, 'Residents cannot use admin APIs.');
+        const me = await apiRequest<{ roles: string[] }>(baseUrl, '/auth/me', {
+          identity: residents.admin,
+        });
+        assert.deepEqual(me.roles, ['ADMIN']);
 
         const categories = await apiRequest<{ id: string; slug: string }[]>(
           baseUrl,
@@ -108,7 +155,7 @@ if (process.env.MANA_TOWN_ALLOW_DB_INTEGRATION !== 'true') {
         const updatedUser = await apiRequest<{
           id: string;
           roles: { role: string }[];
-        }>(baseUrl, `/admin/users/${residents.resident}/roles`, {
+        }>(baseUrl, `/admin/users/${residentUserId}/roles`, {
           method: 'PATCH',
           identity: residents.admin,
           body: { roles: ['RESIDENT', 'BUSINESS_OWNER'] },

@@ -13,7 +13,11 @@ The database-backed test is opt-in locally and only accepts a database named
 docker compose up -d postgres-test
 $env:DATABASE_URL = 'postgresql://mana:mana_local_only@localhost:5433/mana_town_test?schema=public'
 $env:NODE_ENV = 'test'
-$env:MOCK_AUTH_ENABLED = 'true'
+$env:AUTH_JWT_SECRET = '<32+ random characters>'
+$env:SEED_DEMO_DATA = 'true'
+'ADMIN','OWNER','RESIDENT','ENTREPRENEUR' | ForEach-Object {
+  Set-Item "Env:SEED_PASSWORD_$_" '<12+ character password>'
+}
 npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
 npx tsx apps/api/prisma/seed.ts
 $env:MANA_TOWN_ALLOW_DB_INTEGRATION = 'true'

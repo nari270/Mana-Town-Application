@@ -29,7 +29,12 @@ jobs:
       DATABASE_URL: postgresql://mana:mana_local_only@localhost:5432/mana_town_test?schema=public
       DIRECT_URL: postgresql://mana:mana_local_only@localhost:5432/mana_town_test?schema=public
       NODE_ENV: test
-      MOCK_AUTH_ENABLED: 'true'
+      AUTH_JWT_SECRET: ci-only-signing-secret-not-used-anywhere-else
+      SEED_DEMO_DATA: 'true'
+      SEED_PASSWORD_ADMIN: ci-only-admin-password
+      SEED_PASSWORD_OWNER: ci-only-owner-password
+      SEED_PASSWORD_RESIDENT: ci-only-resident-password
+      SEED_PASSWORD_ENTREPRENEUR: ci-only-entrepreneur-password
       MANA_TOWN_ALLOW_DB_INTEGRATION: 'true'
     steps:
       - uses: actions/checkout@v4

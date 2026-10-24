@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole } from '@prisma/client';
+import { hashPassword } from '../src/auth/password.js';
 
 const prisma = new PrismaClient();
 
@@ -29,37 +30,59 @@ async function main() {
     });
   }
 
-  if (process.env.MOCK_AUTH_ENABLED === 'true') {
+  if (process.env.SEED_DEMO_DATA === 'true') {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Mock users cannot be seeded in production.');
+      throw new Error('Demo users cannot be seeded in production.');
     }
     const demoUsers = [
       {
         id: '00000000-0000-4000-8000-000000000001',
+        username: 'resident',
+        passwordEnv: 'SEED_PASSWORD_RESIDENT',
         displayName: 'Demo Resident',
         role: UserRole.RESIDENT,
       },
       {
         id: '00000000-0000-4000-8000-000000000002',
+        username: 'owner',
+        passwordEnv: 'SEED_PASSWORD_OWNER',
         displayName: 'Demo Business Owner',
         role: UserRole.BUSINESS_OWNER,
       },
       {
         id: '00000000-0000-4000-8000-000000000003',
+        username: 'entrepreneur',
+        passwordEnv: 'SEED_PASSWORD_ENTREPRENEUR',
         displayName: 'Demo Women Entrepreneur',
         role: UserRole.WOMEN_ENTREPRENEUR,
       },
       {
         id: '00000000-0000-4000-8000-000000000004',
+        username: 'admin',
+        passwordEnv: 'SEED_PASSWORD_ADMIN',
         displayName: 'Demo Administrator',
         role: UserRole.ADMIN,
       },
     ];
     for (const demo of demoUsers) {
+      const password = process.env[demo.passwordEnv];
+      if (!password || password.length < 12) {
+        throw new Error(`${demo.passwordEnv} must be set (12+ characters).`);
+      }
+      const passwordHash = await hashPassword(password);
       await prisma.user.upsert({
         where: { id: demo.id },
-        update: { displayName: demo.displayName },
-        create: { id: demo.id, displayName: demo.displayName },
+        update: {
+          displayName: demo.displayName,
+          username: demo.username,
+          passwordHash,
+        },
+        create: {
+          id: demo.id,
+          displayName: demo.displayName,
+          username: demo.username,
+          passwordHash,
+        },
       });
       await prisma.userRoleAssignment.upsert({
         where: { userId_role: { userId: demo.id, role: demo.role } },

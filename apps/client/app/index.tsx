@@ -11,11 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button, Chip, SegmentedButtons, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  developmentIdentities,
-  getDevelopmentIdentity,
-  setDevelopmentIdentity,
-} from '../src/api';
+import { clearSession, hasRole, useSession } from '../src/session';
 
 type Language = 'en' | 'te';
 type Destination =
@@ -66,13 +62,8 @@ export default function HomeScreen() {
   const isCompact = width < 440;
   const language: Language = i18n.resolvedLanguage === 'te' ? 'te' : 'en';
   const [languageChoice, setLanguageChoice] = useState<Language>(language);
-  const [identityId, setIdentityId] = useState(
-    getDevelopmentIdentity() ?? developmentIdentities[1].id,
-  );
-  const adminMode =
-    __DEV__ &&
-    process.env.EXPO_PUBLIC_MOCK_AUTH_ENABLED === 'true' &&
-    identityId === '00000000-0000-4000-8000-000000000004';
+  const session = useSession();
+  const adminMode = hasRole(session, 'ADMIN');
 
   return (
     <ScrollView
@@ -176,38 +167,35 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {__DEV__ && process.env.EXPO_PUBLIC_MOCK_AUTH_ENABLED === 'true' && (
-          <View style={styles.identity}>
-            <View style={styles.identityLabel}>
-              <MaterialCommunityIcons
-                name="account-switch-outline"
-                size={18}
-                color="#39776A"
-              />
-              <Text variant="labelLarge" style={styles.identityTitle}>
-                {t('mockAuth.title')}
-              </Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.identityOptions}>
-                {developmentIdentities.map((identity) => (
-                  <Chip
-                    key={identity.id}
-                    selected={identityId === identity.id}
-                    onPress={() => {
-                      if (setDevelopmentIdentity(identity.id)) {
-                        setIdentityId(identity.id);
-                        queryClient.clear();
-                      }
-                    }}
-                  >
-                    {t(`mockAuth.${identity.key}`)}
-                  </Chip>
-                ))}
-              </View>
-            </ScrollView>
+        <View style={styles.identity}>
+          <View style={styles.identityLabel}>
+            <MaterialCommunityIcons
+              name="account-circle-outline"
+              size={18}
+              color="#39776A"
+            />
+            <Text variant="labelLarge" style={styles.identityTitle}>
+              {session
+                ? t('auth.signedInAs', { name: session.user.displayName })
+                : t('auth.signedOut')}
+            </Text>
           </View>
-        )}
+          {session ? (
+            <Button
+              mode="outlined"
+              onPress={() => {
+                clearSession();
+                queryClient.clear();
+              }}
+            >
+              {t('auth.signOut')}
+            </Button>
+          ) : (
+            <Link href="/login" asChild>
+              <Button mode="contained">{t('auth.signIn')}</Button>
+            </Link>
+          )}
+        </View>
 
         <View style={styles.sectionHeading}>
           <View>

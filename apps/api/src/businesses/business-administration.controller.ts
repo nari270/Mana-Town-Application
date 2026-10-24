@@ -12,7 +12,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
-import { MockAuthenticationGuard } from '../auth/mock-auth.guard.js';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import {
   AdminBusinessQueryDto,
@@ -22,7 +22,7 @@ import { BusinessesService } from './businesses.service.js';
 
 @ApiTags('admin/businesses')
 @Controller('admin/businesses')
-@UseGuards(MockAuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class BusinessAdministrationController {
   constructor(private readonly businesses: BusinessesService) {}

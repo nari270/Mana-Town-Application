@@ -31,8 +31,8 @@ complete or production-deployable product.
    `http://localhost:3000/api/v1/health/ready`.
 6. Start the client with `npm run dev:web`; open `http://localhost:8081`.
 
-The web client uses `EXPO_PUBLIC_API_URL` and mock identity settings from `.env`
-at bundle start. Restart Expo after changing those variables. The readiness
+The web client uses `EXPO_PUBLIC_API_URL` from `.env` at bundle start. Restart
+Expo after changing it. The readiness
 route returns HTTP 503 while PostgreSQL is unavailable; liveness alone does not
 prove the database is ready.
 
@@ -40,10 +40,16 @@ For Neon, set `DATABASE_URL` to the pooled connection string for API traffic and
 `DIRECT_URL` to the unpooled connection string for Prisma migrations. Keep both
 URLs in the deployment secret store; never commit credentials.
 
-The development mock authentication switch must be rejected unless
-`NODE_ENV=development` or `NODE_ENV=test`. It is not a production identity
-provider. Select and configure a production authentication provider before a
-public launch; SMS OTP is deliberately out of scope.
+## Sign-in
+
+The API uses username/password login (`POST /api/v1/auth/login`). Set
+`AUTH_JWT_SECRET` (32+ random characters). To create the demo accounts
+`admin`, `owner`, `resident` and `entrepreneur`, set `SEED_DEMO_DATA=true` and a
+`SEED_PASSWORD_<NAME>` (12+ characters) for each, then run `npm run db:seed`.
+Re-running the seed resets those passwords to the configured values. Passwords
+live only in your local `.env` or deployment secret store, never in the repo.
+Demo seeding is refused when `NODE_ENV=production`. SMS OTP and self
+registration are deliberately out of scope for now.
 
 ## Checks
 

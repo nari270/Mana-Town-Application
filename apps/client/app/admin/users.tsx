@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { Button, Card, Chip, Text } from 'react-native-paper';
 import {
   getAdminUsers,
-  getDevelopmentIdentity,
   updateAdminUserRoles,
   type AdminUser,
 } from '../../src/api';
+import { useSession } from '../../src/session';
 
 type Role = AdminUser['roles'][number]['role'];
 
@@ -23,7 +23,7 @@ const roles: Role[] = [
 export default function AdminUsersScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const currentIdentity = getDevelopmentIdentity();
+  const currentIdentity = useSession()?.user.id;
   const [roleChanges, setRoleChanges] = useState<Record<string, Role[]>>({});
   const users = useQuery({
     queryKey: ['admin', 'users'],

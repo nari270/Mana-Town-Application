@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from 'expo-router';
+import { hasRole, useSession } from '../src/session';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -22,6 +28,20 @@ const theme = {
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
   const [ready, setReady] = useState(false);
+  const session = useSession();
+  const segments = useSegments();
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const area = segments[0] as string | undefined;
+
+  useEffect(() => {
+    if (!navigationState?.key) return;
+    const protectedArea =
+      area === 'owner' || area === 'report-issue' || area === 'admin';
+    if (protectedArea && !session) router.replace('/login');
+    else if (area === 'admin' && !hasRole(session, 'ADMIN'))
+      router.replace('/');
+  }, [area, session, navigationState?.key, router]);
 
   useEffect(() => {
     let active = true;

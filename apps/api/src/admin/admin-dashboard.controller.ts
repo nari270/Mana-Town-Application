@@ -1,13 +1,13 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { MockAuthenticationGuard } from '../auth/mock-auth.guard.js';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @ApiTags('admin')
 @Controller('admin')
-@UseGuards(MockAuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminDashboardController {
   constructor(private readonly prisma: PrismaService) {}

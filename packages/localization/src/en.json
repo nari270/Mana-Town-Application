@@ -168,12 +168,17 @@
     "PAUSED": "Paused",
     "EXPIRED": "Expired"
   },
-  "mockAuth": {
-    "title": "Development test identity",
-    "resident": "Resident",
-    "businessOwner": "Owner",
-    "womenEntrepreneur": "Women entrepreneur",
-    "administrator": "Administrator"
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Use your ManaTown username and password to continue.",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {{name}}",
+    "signedOut": "You are browsing as a guest",
+    "required": "Enter your username and password.",
+    "backHome": "Back to home"
   },
   "directory": {
     "title": "Local businesses",

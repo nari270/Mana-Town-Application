@@ -3,14 +3,10 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
+import { requireAuthSecret } from './auth/token.js';
 
 export async function createApp() {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.MOCK_AUTH_ENABLED === 'true'
-  ) {
-    throw new Error('Mock authentication cannot be enabled in production.');
-  }
+  requireAuthSecret(process.env.AUTH_JWT_SECRET);
 
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();

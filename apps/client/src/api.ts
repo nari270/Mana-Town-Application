@@ -5,53 +5,20 @@ import type {
   IssueStatus,
   Page,
 } from '@mana-town/shared-types';
+import { clearSession, getSession, setSession, type Session } from './session';
 
 const apiBaseUrl =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
-export const developmentIdentities = [
-  {
-    id: '00000000-0000-4000-8000-000000000001',
-    key: 'resident',
-    label: 'Resident',
-  },
-  {
-    id: '00000000-0000-4000-8000-000000000002',
-    key: 'businessOwner',
-    label: 'Business owner',
-  },
-  {
-    id: '00000000-0000-4000-8000-000000000003',
-    key: 'womenEntrepreneur',
-    label: 'Women entrepreneur',
-  },
-  {
-    id: '00000000-0000-4000-8000-000000000004',
-    key: 'administrator',
-    label: 'Administrator',
-  },
-] as const;
-
-let activeDevelopmentIdentity =
-  __DEV__ && process.env.EXPO_PUBLIC_MOCK_AUTH_ENABLED === 'true'
-    ? (process.env.EXPO_PUBLIC_MOCK_USER_ID ?? developmentIdentities[1].id)
-    : undefined;
-
-export function getDevelopmentIdentity() {
-  return activeDevelopmentIdentity;
+export async function login(username: string, password: string) {
+  const session = await request<Session>('/auth/login', {
+    method: 'POST',
+    body: { username, password },
+    anonymous: true,
+  });
+  setSession(session);
+  return session;
 }
-
-export function setDevelopmentIdentity(userId: string) {
-  if (!__DEV__ || process.env.EXPO_PUBLIC_MOCK_AUTH_ENABLED !== 'true') {
-    return false;
-  }
-  if (!developmentIdentities.some((identity) => identity.id === userId)) {
-    return false;
-  }
-  activeDevelopmentIdentity = userId;
-  return true;
-}
-
 export class ApiClientError extends Error {
   constructor(
     readonly kind: 'network' | 'server',
@@ -116,13 +83,17 @@ export type EntrepreneurProfile = BusinessListItem;
 
 async function request<T>(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown } = {},
+  options: {
+    method?: 'GET' | 'POST' | 'PATCH';
+    body?: unknown;
+    anonymous?: boolean;
+  } = {},
 ): Promise<T> {
   let response: Response;
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  const mockUserId = activeDevelopmentIdentity;
-  if (mockUserId) headers['x-mock-user-id'] = mockUserId;
+  const token = options.anonymous ? undefined : getSession()?.token;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
     const requestOptions: RequestInit = {
@@ -138,6 +109,7 @@ async function request<T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && token) clearSession();
     const body = await response.text();
     throw new ApiClientError(
       'server',

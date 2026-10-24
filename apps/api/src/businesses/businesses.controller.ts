@@ -13,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
-import { MockAuthenticationGuard } from '../auth/mock-auth.guard.js';
+import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import { Roles, RolesGuard } from '../auth/roles.guard.js';
 import { BusinessQueryDto } from './business-query.dto.js';
 import { BusinessWriteDto, UpdateBusinessDto } from './business-write.dto.js';
@@ -25,7 +25,7 @@ export class BusinessesController {
   constructor(private readonly businesses: BusinessesService) {}
 
   @Get('mine')
-  @UseGuards(MockAuthenticationGuard, RolesGuard)
+  @UseGuards(AuthenticationGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'List the signed-in owner’s businesses' })
   listMine(@CurrentUser() user: AuthenticatedUser) {
@@ -33,7 +33,7 @@ export class BusinessesController {
   }
 
   @Post()
-  @UseGuards(MockAuthenticationGuard, RolesGuard)
+  @UseGuards(AuthenticationGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a draft business listing' })
   create(
@@ -44,7 +44,7 @@ export class BusinessesController {
   }
 
   @Patch(':id')
-  @UseGuards(MockAuthenticationGuard, RolesGuard)
+  @UseGuards(AuthenticationGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Edit an owned business listing' })
   update(
@@ -56,7 +56,7 @@ export class BusinessesController {
   }
 
   @Post(':id/submit')
-  @UseGuards(MockAuthenticationGuard, RolesGuard)
+  @UseGuards(AuthenticationGuard, RolesGuard)
   @Roles(UserRole.BUSINESS_OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Submit a draft or corrected business for review' })
   submit(
