@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "ManaTown Digital",
+    "slug": "mana-town-digital",
+    "scheme": "manatown",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "plugins": ["expo-router", "expo-updates"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "in.manatown.digital"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

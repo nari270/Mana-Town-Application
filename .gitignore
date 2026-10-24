@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.expo/
+.expo-shared/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+apps/client/android/
+apps/client/ios/
+apps/client/web-build/
+apps/api/prisma/dev.db
+.neon

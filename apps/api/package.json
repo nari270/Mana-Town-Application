@@ -1,0 +1,43 @@
+{
+  "name": "@mana-town/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "dotenv -e ../../.env -- node dist/main.js",
+    "dev": "dotenv -e ../../.env -- tsx watch src/main.ts",
+    "db:validate": "dotenv -e ../../.env -- prisma validate",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.prisma.json",
+    "test": "tsx --test src/app.spec.ts src/auth/mock-auth.guard.spec.ts src/businesses/businesses.service.spec.ts src/issues/issues.service.spec.ts src/entrepreneurs/entrepreneurs.service.spec.ts",
+    "test:integration": "tsc -p tsconfig.json && node --test dist/integration/database-flows.spec.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "realtime:check": "dotenv -e ../../.env -- tsx scripts/realtime-check.ts"
+  },
+  "dependencies": {
+    "@mana-town/shared-types": "0.1.0",
+    "@neon/realtime": "^0.1.2",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/swagger": "^11.2.0",
+    "@prisma/client": "^6.16.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "helmet": "^8.1.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.18.6",
+    "prisma": "^6.16.2",
+    "tsx": "^4.20.5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

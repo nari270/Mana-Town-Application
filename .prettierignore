@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.expo/
+apps/api/prisma/migrations/
+apps/client/expo-env.d.ts

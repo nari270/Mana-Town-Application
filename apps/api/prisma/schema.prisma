@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  RESIDENT
+  BUSINESS_OWNER
+  WOMEN_ENTREPRENEUR
+  ADMIN
+}
+
+enum EntrepreneurClassificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BusinessStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum IssueStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum AdvertisementStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+enum AdvertisementEventKind {
+  IMPRESSION
+  CLICK
+}
+
+model User {
+  id                   String                       @id @default(uuid()) @db.Uuid
+  email                String?                      @unique
+  displayName          String                       @map("display_name") @db.VarChar(120)
+  createdAt            DateTime                     @default(now()) @map("created_at")
+  updatedAt            DateTime                     @updatedAt @map("updated_at")
+  profile              UserProfile?
+  roles                UserRoleAssignment[]
+  businesses           BusinessOwnership[]
+  issueReports         IssueReport[]
+  auditLogs            AuditLog[]
+  entrepreneurRequests EntrepreneurClassification[] @relation("ClassificationRequester")
+  entrepreneurReviews  EntrepreneurClassification[] @relation("ClassificationReviewer")
+  businessModerations  BusinessModerationHistory[]   @relation("BusinessModerator")
+  issueStatusActions   IssueStatusHistory[]           @relation("IssueStatusActor")
+  issueNotes           IssueInternalNote[]            @relation("IssueNoteAuthor")
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId            String   @id @map("user_id") @db.Uuid
+  preferredLanguage String   @default("en") @map("preferred_language") @db.VarChar(2)
+  locality          String?  @db.VarChar(120)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserRoleAssignment {
+  userId    String   @map("user_id") @db.Uuid
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+  @@map("user_roles")
+}
+
+model BusinessCategory {
+  id          String                      @id @default(uuid()) @db.Uuid
+  nameEnglish String                      @map("name_en") @db.VarChar(100)
+  nameTelugu  String                      @map("name_te") @db.VarChar(100)
+  slug        String                      @unique @db.VarChar(100)
+  createdAt   DateTime                    @default(now()) @map("created_at")
+  businesses  BusinessCategoryAssignment[]
+
+  @@map("business_categories")
+}
+
+model Business {
+  id              String                     @id @default(uuid()) @db.Uuid
+  name            String                     @db.VarChar(120)
+  description     String                     @db.VarChar(3000)
+  address         String                     @db.VarChar(300)
+  locality        String                     @db.VarChar(120)
+  phone           String?                    @db.VarChar(32)
+  whatsapp        String?                    @db.VarChar(32)
+  status          BusinessStatus             @default(DRAFT)
+  rejectionReason String?                    @map("rejection_reason") @db.VarChar(1000)
+  approvedAt      DateTime?                  @map("approved_at")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+  ownerships      BusinessOwnership[]
+  categories      BusinessCategoryAssignment[]
+  images          BusinessImage[]
+  hours           BusinessHour[]
+  moderation      BusinessModerationHistory[]
+  entrepreneur    EntrepreneurClassification?
+  advertiserFor   AdvertisementCampaign[]
+
+  @@index([status, locality])
+  @@index([name])
+  @@map("businesses")
+}
+
+model BusinessOwnership {
+  businessId String   @map("business_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, userId])
+  @@index([userId])
+  @@map("business_ownerships")
+}
+
+model BusinessCategoryAssignment {
+  businessId String           @map("business_id") @db.Uuid
+  categoryId String           @map("category_id") @db.Uuid
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category   BusinessCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([businessId, categoryId])
+  @@index([categoryId])
+  @@map("business_category_assignments")
+}
+
+model BusinessImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  objectKey  String   @unique @map("object_key") @db.VarChar(512)
+  altText    String   @map("alt_text") @db.VarChar(240)
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_images")
+}
+
+model BusinessHour {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  weekday    Int
+  opensAt    String?  @map("opens_at") @db.VarChar(5)
+  closesAt   String?  @map("closes_at") @db.VarChar(5)
+  closed     Boolean  @default(false)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, weekday])
+  @@map("business_hours")
+}
+
+model BusinessModerationHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  status      BusinessStatus
+  reason      String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now()) @map("created_at")
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actor       User     @relation("BusinessModerator", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, createdAt])
+  @@map("business_moderation_history")
+}
+
+model EntrepreneurClassification {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @unique @map("business_id") @db.Uuid
+  requesterId String  @map("requester_id") @db.Uuid
+  status     EntrepreneurClassificationStatus @default(PENDING)
+  rejectionReason String? @map("rejection_reason") @db.VarChar(1000)
+  approvedAt DateTime? @map("approved_at")
+  reviewedBy String?  @map("reviewed_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  requester  User     @relation("ClassificationRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  reviewer   User?    @relation("ClassificationReviewer", fields: [reviewedBy], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("entrepreneur_classifications")
+}
+
+model IssueReport {
+  id          String              @id @default(uuid()) @db.Uuid
+  reference   String              @unique @default(cuid()) @db.VarChar(32)
+  reporterId  String              @map("reporter_id") @db.Uuid
+  title       String              @db.VarChar(160)
+  description String              @db.VarChar(5000)
+  category    String              @db.VarChar(80)
+  locality    String              @db.VarChar(120)
+  status      IssueStatus         @default(SUBMITTED)
+  resolution  String?             @db.VarChar(2000)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  reporter    User                @relation(fields: [reporterId], references: [id], onDelete: Restrict)
+  attachments IssueAttachment[]
+  history     IssueStatusHistory[]
+  notes       IssueInternalNote[]
+
+  @@index([reporterId, createdAt])
+  @@index([status, createdAt])
+  @@map("issue_reports")
+}
+
+model IssueAttachment {
+  id        String     @id @default(uuid()) @db.Uuid
+  issueId   String     @map("issue_id") @db.Uuid
+  objectKey String     @unique @map("object_key") @db.VarChar(512)
+  mimeType  String     @map("mime_type") @db.VarChar(80)
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@map("issue_attachments")
+}
+
+model IssueStatusHistory {
+  id        String     @id @default(uuid()) @db.Uuid
+  issueId   String     @map("issue_id") @db.Uuid
+  actorId   String     @map("actor_id") @db.Uuid
+  status    IssueStatus
+  details   String?    @db.VarChar(1000)
+  createdAt DateTime   @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actor     User        @relation("IssueStatusActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([issueId, createdAt])
+  @@map("issue_status_history")
+}
+
+model IssueInternalNote {
+  id        String     @id @default(uuid()) @db.Uuid
+  issueId   String     @map("issue_id") @db.Uuid
+  authorId  String     @map("author_id") @db.Uuid
+  note      String     @db.VarChar(2000)
+  createdAt DateTime   @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author    User        @relation("IssueNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([issueId, createdAt])
+  @@map("issue_internal_notes")
+}
+
+model AdvertisementCampaign {
+  id         String              @id @default(uuid()) @db.Uuid
+  name       String              @db.VarChar(120)
+  businessId String?             @map("business_id") @db.Uuid
+  placement  String              @db.VarChar(80)
+  startsAt   DateTime            @map("starts_at")
+  endsAt     DateTime            @map("ends_at")
+  status     AdvertisementStatus @default(PAUSED)
+  createdAt  DateTime            @default(now()) @map("created_at")
+  business   Business?           @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  assets     AdvertisementAsset[]
+  events     AdvertisementEvent[]
+
+  @@index([status, startsAt, endsAt])
+  @@map("advertisement_campaigns")
+}
+
+model AdvertisementAsset {
+  id         String                @id @default(uuid()) @db.Uuid
+  campaignId String                @map("campaign_id") @db.Uuid
+  objectKey  String                @unique @map("object_key") @db.VarChar(512)
+  campaign   AdvertisementCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("advertisement_assets")
+}
+
+model AdvertisementEvent {
+  id         String                @id @default(uuid()) @db.Uuid
+  campaignId String                @map("campaign_id") @db.Uuid
+  kind       AdvertisementEventKind
+  createdAt  DateTime              @default(now()) @map("created_at")
+  campaign   AdvertisementCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, kind, createdAt])
+  @@map("advertisement_events")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(80)
+  entityId   String   @map("entity_id") @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at")
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model AppConfiguration {
+  key       String   @id @db.VarChar(100)
+  value     Json
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_configuration")
+}
+
+model FeatureFlag {
+  key       String   @id @db.VarChar(100)
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}

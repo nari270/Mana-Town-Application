@@ -1,0 +1,244 @@
+{
+  "brand": "ManaTown Digital",
+  "tagline": "Local Problems. Local Solutions.",
+  "town": "Kadiri",
+  "nav": {
+    "home": "Home",
+    "businesses": "Businesses",
+    "entrepreneurs": "Women entrepreneurs",
+    "reportIssue": "Report a problem",
+    "profile": "Profile"
+  },
+  "home": {
+    "welcome": "Discover Kadiri",
+    "intro": "Find trusted local services and make a difference right here in your community.",
+    "explore": "Explore local businesses",
+    "exploreShort": "Explore",
+    "servicesTitle": "Explore ManaTown",
+    "servicesSubtitle": "Everything your local community needs, in one place.",
+    "businesses": {
+      "title": "Local businesses",
+      "description": "Find shops, services and products nearby."
+    },
+    "entrepreneurs": {
+      "title": "Women entrepreneurs",
+      "description": "Discover and support women-led businesses."
+    },
+    "issues": {
+      "title": "Local solutions",
+      "description": "Report a problem and follow community action."
+    },
+    "owners": {
+      "title": "My business",
+      "description": "Create and manage your local listing."
+    },
+    "adminDescription": "Review listings, reports and community services.",
+    "communityTitle": "Together, we grow",
+    "communitySubtitle": "Support local businesses. Build a stronger Kadiri."
+  },
+  "directory": {
+    "title": "Local businesses",
+    "searchLabel": "Search name or keyword",
+    "searchButton": "Search",
+    "allCategories": "All",
+    "loading": "Loading businesses…",
+    "empty": "No approved businesses found.",
+    "retry": "Retry",
+    "loadMore": "Load more businesses",
+    "details": "Details",
+    "back": "Back to businesses",
+    "categoriesError": "Could not load categories.",
+    "weekday": {
+      "0": "Monday",
+      "1": "Tuesday",
+      "2": "Wednesday",
+      "3": "Thursday",
+      "4": "Friday",
+      "5": "Saturday",
+      "6": "Sunday"
+    },
+    "closed": "Closed"
+  },
+  "owner": {
+    "title": "Business owner portal",
+    "createTitle": "Create or edit your listing",
+    "name": "Business name",
+    "description": "Description",
+    "category": "Category",
+    "locality": "Locality",
+    "address": "Address",
+    "phone": "Telephone (optional)",
+    "whatsapp": "WhatsApp number (optional)",
+    "save": "Save draft",
+    "submit": "Submit for review",
+    "requestClassification": "Request women-owned review",
+    "classificationSubmitted": "Your classification request was submitted.",
+    "confirmWomenOwned": "I confirm this business is women-owned and request admin review.",
+    "classification": {
+      "PENDING": "Women-owned review pending",
+      "APPROVED": "Women-owned classification approved",
+      "REJECTED": "Women-owned classification rejected"
+    },
+    "edit": "Edit",
+    "cancelEdit": "Cancel edit",
+    "empty": "You do not have any business listings yet.",
+    "loading": "Loading your listings…",
+    "saved": "Your draft was saved.",
+    "submitted": "Your listing was submitted for review.",
+    "rejection": "Reason for rejection",
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING": "Pending review",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "SUSPENDED": "Suspended"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "name": "Enter at least 2 characters.",
+      "description": "Enter at least 10 characters.",
+      "contact": "Enter a valid phone number."
+    }
+  },
+  "entrepreneur": {
+    "title": "Women entrepreneurs",
+    "empty": "No approved profiles found.",
+    "loading": "Loading profiles…",
+    "searchLabel": "Search profiles",
+    "requestPending": "Classification pending review",
+    "retry": "Retry"
+  },
+  "admin": {
+    "title": "Administration",
+    "overview": "Overview",
+    "pendingBusinesses": "Pending businesses",
+    "approvedBusinesses": "Approved businesses",
+    "rejectedBusinesses": "Rejected businesses",
+    "suspendedBusinesses": "Suspended businesses",
+    "pendingEntrepreneurs": "Pending women-owned reviews",
+    "activeAds": "Active advertisements",
+    "users": "Users",
+    "businessReviews": "Business approvals",
+    "entrepreneurReviews": "Women-owned classification reviews",
+    "issues": "Local issue reports",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectionReason": "Reason for rejection",
+    "requestedBy": "Requested by",
+    "reporter": "Reporter",
+    "internalNote": "Add internal note",
+    "resolution": "Resolution details",
+    "updateStatus": "Update status",
+    "empty": "No items to review.",
+    "retry": "Retry",
+    "reviewError": "The action could not be completed. Reload and retry."
+  },
+  "adminCategories": {
+    "title": "Business categories",
+    "englishName": "English name",
+    "teluguName": "Telugu name",
+    "slug": "URL key",
+    "save": "Save category",
+    "create": "Create category",
+    "edit": "Edit",
+    "empty": "No categories found."
+  },
+  "adminUsers": {
+    "title": "User and role management",
+    "saveRoles": "Save roles",
+    "selfEditBlocked": "You cannot change your own roles.",
+    "RESIDENT": "Resident",
+    "BUSINESS_OWNER": "Business owner",
+    "WOMEN_ENTREPRENEUR": "Women entrepreneur",
+    "ADMIN": "Administrator"
+  },
+  "adminAds": {
+    "title": "Advertisement campaigns",
+    "name": "Campaign name",
+    "businessId": "Advertiser business ID (optional)",
+    "placement": "Placement key",
+    "startsAt": "Start date/time (ISO 8601)",
+    "endsAt": "End date/time (ISO 8601)",
+    "create": "Create campaign",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "sponsored": "Sponsored",
+    "bannerNotice": "Campaign banner upload is not configured yet.",
+    "ACTIVE": "Active",
+    "PAUSED": "Paused",
+    "EXPIRED": "Expired"
+  },
+  "mockAuth": {
+    "title": "Development test identity",
+    "resident": "Resident",
+    "businessOwner": "Owner",
+    "womenEntrepreneur": "Women entrepreneur",
+    "administrator": "Administrator"
+  },
+  "directory": {
+    "title": "Local businesses",
+    "searchLabel": "Search name or keyword",
+    "searchButton": "Search",
+    "allCategories": "All",
+    "loading": "Loading businesses…",
+    "empty": "No approved businesses found.",
+    "retry": "Retry",
+    "loadMore": "Load more businesses",
+    "details": "Details",
+    "back": "Back to businesses",
+    "categoriesError": "Could not load categories.",
+    "weekday": {
+      "0": "Monday",
+      "1": "Tuesday",
+      "2": "Wednesday",
+      "3": "Thursday",
+      "4": "Friday",
+      "5": "Saturday",
+      "6": "Sunday"
+    },
+    "closed": "Closed"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "search": "Search",
+    "error": "Something went wrong. Please try again.",
+    "networkError": "Unable to reach the service. Check your connection and retry.",
+    "serverError": "The request could not be completed. Please retry."
+  },
+  "business": {
+    "empty": "No businesses found.",
+    "verified": "Verified",
+    "call": "Call",
+    "whatsapp": "WhatsApp"
+  },
+  "issue": {
+    "submitted": "Your report was submitted.",
+    "failed": "We could not submit your report. Please try again.",
+    "title": "Report a local problem",
+    "reportTitle": "Problem title",
+    "description": "Describe the problem",
+    "category": "Category",
+    "locality": "Town/locality or address",
+    "submit": "Submit report",
+    "reference": "Reference",
+    "mine": "Your reports",
+    "empty": "You have not submitted any reports.",
+    "loading": "Loading your reports…",
+    "categories": {
+      "roads": "Roads",
+      "water": "Water supply",
+      "sanitation": "Sanitation",
+      "electricity": "Street lighting",
+      "other": "Other"
+    },
+    "status": {
+      "SUBMITTED": "Submitted",
+      "UNDER_REVIEW": "Under review",
+      "IN_PROGRESS": "In progress",
+      "RESOLVED": "Resolved",
+      "REJECTED": "Rejected",
+      "CLOSED": "Closed"
+    }
+  }
+}

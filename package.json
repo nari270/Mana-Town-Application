@@ -1,0 +1,38 @@
+{
+  "name": "mana-town-digital",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bilingual Kadiri community directory and local services platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:integration": "npm run test:integration -w @mana-town/api",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "dev:api": "npm run dev -w @mana-town/api",
+    "dev:web": "npm run web -w @mana-town/client",
+    "db:generate": "npm run db:generate -w @mana-town/api",
+    "db:validate": "npm run db:validate -w @mana-town/api",
+    "db:migrate": "npm run db:migrate -w @mana-town/api",
+    "db:deploy": "npm run db:deploy -w @mana-town/api",
+    "db:seed": "npm run db:seed -w @mana-town/api",
+    "db:setup": "npm run db:generate && npm run db:migrate && npm run db:seed"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^10.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@neon/config": "^1.9.3",
+    "@neon/env": "^1.6.4"
+  }
+}
