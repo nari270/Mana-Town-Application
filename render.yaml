@@ -1,6 +1,7 @@
 services:
   - type: web
     name: manatown-api
+    branch: version1.1
     runtime: node
     plan: free
     buildCommand: npm ci --include=dev && npm run db:generate -w @mana-town/api && npm run build -w @mana-town/api && npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
@@ -42,6 +43,7 @@ services:
 
   - type: web
     name: manatown-web
+    branch: version1.1
     runtime: static
     buildCommand: npm ci --include=dev && npm run build -w @mana-town/client
     staticPublishPath: apps/client/dist

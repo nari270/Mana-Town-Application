@@ -17,6 +17,14 @@ migration depends on its `auth` schema and removes the legacy username/password
 columns. Back up the source database before deploying. The one-time
 Neon-to-Supabase data copy is separate and is not run by Render.
 
+Both Render services are pinned to the `version1.1` branch in `render.yaml`.
+When creating a new Blueprint, provide the `sync: false` database and Supabase
+values for the newly created API service. When syncing an existing Render
+service, Render retains its current secret values instead of prompting again;
+update `DATABASE_URL`, `DIRECT_URL`, and the Supabase keys in that service's
+Environment settings if the target database or project has changed. Render
+does not create or rotate Supabase database credentials.
+
 Business photos are stored in a private S3-compatible bucket. Configure
 `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` on the
 Render API service before enabling owner uploads. Set `S3_ENDPOINT` for
