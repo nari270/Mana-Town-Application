@@ -3,8 +3,7 @@ services:
     name: manatown-api
     runtime: node
     plan: free
-    buildCommand: npm ci --include=dev && npm run db:generate -w @mana-town/api && npm run build -w @mana-town/api
-    preDeployCommand: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+    buildCommand: npm ci --include=dev && npm run db:generate -w @mana-town/api && npm run build -w @mana-town/api && npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
     startCommand: npm run start:prod -w @mana-town/api
     healthCheckPath: /api/v1/health
     envVars:
