@@ -18,10 +18,11 @@ columns. Back up the source database before deploying. The one-time
 Neon-to-Supabase data copy is separate and is not run by Render.
 
 Both Render services are pinned to the `version1.1` branch in `render.yaml`.
-The API's `CLIENT_ORIGIN` must exactly match the deployed static site's origin,
-and the static site's `EXPO_PUBLIC_API_URL` must point to the deployed API.
-If Render creates suffixed service names to avoid collisions, update both URLs
-to those generated service domains before syncing the Blueprint.
+The API's comma-separated `CLIENT_ORIGIN` values must exactly match the
+deployed static site's origins, and the static site's `EXPO_PUBLIC_API_URL`
+must point to the deployed API. If Render creates suffixed service names to
+avoid collisions, update these values to the generated service domains before
+syncing the Blueprint.
 When creating a new Blueprint, provide the `sync: false` database and Supabase
 values for the newly created API service. When syncing an existing Render
 service, Render retains its current secret values instead of prompting again;

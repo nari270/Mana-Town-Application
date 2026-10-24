@@ -33,7 +33,7 @@ services:
       - key: S3_FORCE_PATH_STYLE
         value: 'false'
       - key: CLIENT_ORIGIN
-        value: https://manatown-web-qom2.onrender.com
+        value: https://manatown-web-k8wh.onrender.com,https://manatown-web-qom2.onrender.com
       - key: GEOCODING_BASE_URL
         sync: false
       - key: GEOCODING_USER_AGENT
