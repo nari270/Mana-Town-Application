@@ -17,7 +17,7 @@ services:
       - key: AUTH_JWT_SECRET
         generateValue: true
       - key: CLIENT_ORIGIN
-        value: https://www.manatown.com,https://manatown.com
+        value: https://manatown-web.onrender.com
 
   - type: web
     name: manatown-web
@@ -26,7 +26,7 @@ services:
     staticPublishPath: apps/client/dist
     envVars:
       - key: EXPO_PUBLIC_API_URL
-        value: https://api.manatown.com/api/v1
+        value: https://manatown-api.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
