@@ -33,7 +33,7 @@ services:
       - key: S3_FORCE_PATH_STYLE
         value: 'false'
       - key: CLIENT_ORIGIN
-        value: https://manatown-web.onrender.com
+        value: https://manatown-web-qom2.onrender.com
       - key: GEOCODING_BASE_URL
         sync: false
       - key: GEOCODING_USER_AGENT
@@ -49,7 +49,7 @@ services:
     staticPublishPath: apps/client/dist
     envVars:
       - key: EXPO_PUBLIC_API_URL
-        value: https://manatown-api.onrender.com/api/v1
+        value: https://manatown-api-qom2.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
