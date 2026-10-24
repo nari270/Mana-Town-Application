@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -8,12 +7,10 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Button, Chip, SegmentedButtons, Text } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
-import { clearSession, hasRole, useSession } from '../src/session';
+import { hasRole, useSession } from '../src/session';
 
-type Language = 'en' | 'te';
 type Destination =
   '/businesses' | '/entrepreneurs' | '/report-issue' | '/owner' | '/admin';
 
@@ -55,13 +52,10 @@ const services: {
 ];
 
 export default function HomeScreen() {
-  const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const isWide = width >= 760;
   const isCompact = width < 440;
-  const language: Language = i18n.resolvedLanguage === 'te' ? 'te' : 'en';
-  const [languageChoice, setLanguageChoice] = useState<Language>(language);
   const session = useSession();
   const adminMode = hasRole(session, 'ADMIN');
 
@@ -89,20 +83,6 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <SegmentedButtons
-            value={languageChoice}
-            onValueChange={(value) => {
-              if (value === 'en' || value === 'te') {
-                setLanguageChoice(value);
-                void i18n.changeLanguage(value);
-              }
-            }}
-            buttons={[
-              { value: 'te', label: 'తెలుగు' },
-              { value: 'en', label: 'English' },
-            ]}
-            style={styles.language}
-          />
         </View>
 
         <View style={[styles.hero, isWide && styles.wideHero]}>
@@ -165,36 +145,6 @@ export default function HomeScreen() {
               <View style={styles.townBuilding} />
             </View>
           </View>
-        </View>
-
-        <View style={styles.identity}>
-          <View style={styles.identityLabel}>
-            <MaterialCommunityIcons
-              name="account-circle-outline"
-              size={18}
-              color="#39776A"
-            />
-            <Text variant="labelLarge" style={styles.identityTitle}>
-              {session
-                ? t('auth.signedInAs', { name: session.user.displayName })
-                : t('auth.signedOut')}
-            </Text>
-          </View>
-          {session ? (
-            <Button
-              mode="outlined"
-              onPress={() => {
-                clearSession();
-                queryClient.clear();
-              }}
-            >
-              {t('auth.signOut')}
-            </Button>
-          ) : (
-            <Link href="/login" asChild>
-              <Button mode="contained">{t('auth.signIn')}</Button>
-            </Link>
-          )}
         </View>
 
         <View style={styles.sectionHeading}>

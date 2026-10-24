@@ -6,6 +6,7 @@ import {
   useSegments,
 } from 'expo-router';
 import { hasRole, useSession } from '../src/session';
+import { ProfileMenu } from '../src/ProfileMenu';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -56,7 +57,10 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={theme}>
           {ready ? (
-            <Stack screenOptions={{ headerShown: false }} />
+            <>
+              <Stack screenOptions={{ headerShown: false }} />
+              <ProfileMenu />
+            </>
           ) : (
             <ActivityIndicator
               accessibilityLabel="Loading application"

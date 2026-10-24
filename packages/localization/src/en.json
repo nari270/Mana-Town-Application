@@ -181,7 +181,17 @@
     "required": "Enter your username and password.",
     "backHome": "Back to home",
     "sponsoredTitle": "Happening in Kadiri",
-    "sponsoredNote": "Sign in to browse businesses and see full details."
+    "sponsoredNote": "Sign in to browse businesses and see full details.",
+    "brandTagline": "Your town, connected.",
+    "brandIntro": "Discover local businesses, support women entrepreneurs and report community issues in Kadiri.",
+    "featureBusinesses": "Verified local businesses",
+    "featureWomen": "Women entrepreneurs",
+    "featureIssues": "Report community issues",
+    "welcome": "Welcome back",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "secureNote": "Your sign-in is private and secure.",
+    "language": "Language"
   },
   "accessLog": {
     "title": "Who accessed the app",
